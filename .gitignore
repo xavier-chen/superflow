@@ -1,0 +1,15 @@
+.build/
+dist/
+.DS_Store
+__pycache__/
+*.pyc
+.venv/
+.test-results/
+*.wav
+/soundflow
+/soundflow.exe
+/superflow
+/superflow.exe
+/coverage.out
+/Haru/
+/docs/THINKCENTRE.md

@@ -1,0 +1,9 @@
+.build
+.venv
+.git
+dist
+.test-results
+Haru
+docs/THINKCENTRE.md
+__pycache__
+*.wav
