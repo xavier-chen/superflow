@@ -37,7 +37,7 @@ func (b nativeClipboard) Read(ctx context.Context) (string, error) {
 		}
 		value := b.clipboard().Content()
 		if len(value) > clipboard.MaxText || !utf8.ValidString(value) {
-			done <- result{err: errors.New("剪贴板文本过长或格式暂不支持")}
+			done <- result{err: errors.New(tr("Clipboard text is too long or has an unsupported format"))}
 			return
 		}
 		done <- result{value: value}
@@ -51,7 +51,7 @@ func (b nativeClipboard) Read(ctx context.Context) (string, error) {
 }
 func (b nativeClipboard) Write(ctx context.Context, value string) error {
 	if len(value) > clipboard.MaxText || !utf8.ValidString(value) {
-		return errors.New("剪贴板文本过长或格式暂不支持")
+		return errors.New(tr("Clipboard text is too long or has an unsupported format"))
 	}
 	if ctx.Err() != nil {
 		return ctx.Err()

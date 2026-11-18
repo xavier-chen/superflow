@@ -43,7 +43,7 @@ func newMonitorRenderer(t *deviceTile) *monitorRenderer {
 		r.status.Hide()
 		r.plus = widget.NewIcon(theme.ContentAddIcon())
 		r.objects = append(r.objects, r.plus)
-		r.detail.SetText("添加设备")
+		r.detail.SetText(tr("Add device"))
 	}
 	return r
 }

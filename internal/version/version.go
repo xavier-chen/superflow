@@ -1,7 +1,7 @@
 package version
 
-const Number = "0.6.0"
+const Number = "0.7.0"
 const Release = Number + "-alpha"
-const Build = 6
+const Build = 7
 
-var Numeric = [4]uint16{0, 6, 0, 0}
+var Numeric = [4]uint16{0, 7, 0, 0}

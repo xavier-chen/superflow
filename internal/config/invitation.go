@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+
+	"superflow.local/superflow/internal/i18n"
 )
 
 // Invitations are copied explicitly. Discovery packets never contain Code.
@@ -27,7 +29,7 @@ func ValidAddress(address string) bool {
 
 func (c *Config) Invitation(addresses []string) (string, error) {
 	if c.Mode != "hub" {
-		return "", errors.New("请在使用键鼠的电脑上创建邀请")
+		return "", errors.New(i18n.T("Create the invitation on the computer with the keyboard and mouse"))
 	}
 	code, err := c.Code()
 	if err != nil {
@@ -47,19 +49,19 @@ func (c *Config) Invitation(addresses []string) (string, error) {
 func (i Invitation) Validate() error {
 	id, err := hex.DecodeString(i.ID)
 	if !ValidName(i.Name) || err != nil || len(id) != 16 || len(i.Addresses) == 0 || len(i.Addresses) > 16 {
-		return errors.New("连接邀请不完整，请重新复制")
+		return errors.New(i18n.T("The invitation is incomplete. Copy it again."))
 	}
 	for _, address := range i.Addresses {
 		if !ValidAddress(address) {
-			return errors.New("邀请中的连接地址无效")
+			return errors.New(i18n.T("The invitation contains an invalid connection address"))
 		}
 	}
 	if !strings.HasPrefix(i.Code, "SF2-") {
-		return errors.New("邀请中的配对码无效")
+		return errors.New(i18n.T("The invitation contains an invalid pairing code"))
 	}
 	b, err := base64.RawURLEncoding.DecodeString(strings.TrimPrefix(i.Code, "SF2-"))
 	if err != nil || len(b) != 64 {
-		return errors.New("邀请中的配对码无效")
+		return errors.New(i18n.T("The invitation contains an invalid pairing code"))
 	}
 	return nil
 }
@@ -67,15 +69,15 @@ func (i Invitation) Validate() error {
 func ParseInvitation(value string) (Invitation, error) {
 	var i Invitation
 	if len(value) > 8192 {
-		return i, errors.New("连接邀请过长")
+		return i, errors.New(i18n.T("The invitation is too long"))
 	}
 	u, err := url.Parse(strings.TrimSpace(value))
 	if err != nil || u.Scheme != "superflow" || u.Host != "connect" || u.RawQuery != "" || u.Fragment != "" {
-		return i, errors.New("请粘贴完整的 SuperFlow 连接邀请")
+		return i, errors.New(i18n.T("Paste the complete SuperFlow invitation"))
 	}
 	b, err := base64.RawURLEncoding.DecodeString(strings.TrimPrefix(u.Path, "/"))
 	if err != nil || json.Unmarshal(b, &i) != nil {
-		return i, errors.New("连接邀请无法读取，请重新复制")
+		return i, errors.New(i18n.T("The invitation could not be read. Copy it again."))
 	}
 	return i, i.Validate()
 }

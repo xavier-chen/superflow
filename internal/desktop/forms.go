@@ -19,24 +19,29 @@ import (
 	"superflow.local/superflow/internal/config"
 )
 
-func (g *gui) showError(err error) { dialog.ShowError(err, g.window) }
+func (g *gui) showError(err error) {
+	message := explain(err.Error())
+	d := dialog.NewCustom(tr("Error"), tr("OK"), message, g.window)
+	d.Resize(fyne.NewSize(460, 190))
+	d.Show()
+}
 func (g *gui) inputPage() fyne.CanvasObject {
-	header := g.heading("键鼠与剪贴板", "选择要在设备间共享的内容", nil)
+	header := g.heading(tr("Input & clipboard"), tr("Choose what to share between devices"), nil)
 	if g.config == nil {
-		return container.NewVBox(header, space(24), card(widget.NewLabel("请先建立工作空间。")), widget.NewButton("创建工作空间", g.setup))
+		return container.NewVBox(header, space(24), card(widget.NewLabel(tr("Set up a workspace first."))), widget.NewButton(tr("Create workspace"), g.setup))
 	}
 	c := g.config.Clone()
 	input, clip := newToggle(c.Input), newToggle(c.Clipboard)
-	inputHint := widget.NewLabel("从屏幕边缘切换设备；断线时返回本机并释放远端按键。")
+	inputHint := widget.NewLabel(tr("Move across screen edges to switch computers. On disconnect, input returns here and remote keys are released."))
 	inputHint.Wrapping = fyne.TextWrapWord
 	inputHint.Importance = widget.LowImportance
-	clipHint := widget.NewLabel("同步连接后新复制的文本。图片与文件暂未支持。")
+	clipHint := widget.NewLabel(tr("Sync text copied after connecting. Images and files are currently unsupported."))
 	clipHint.Wrapping = fyne.TextWrapWord
 	clipHint.Importance = widget.LowImportance
-	inputCard := card(container.NewVBox(container.NewBorder(nil, nil, text("键鼠共享", 19, textColor, true), input, nil), space(8), inputHint))
-	clipCard := card(container.NewVBox(container.NewBorder(nil, nil, text("文本剪贴板", 19, textColor, true), clip, nil), space(8), clipHint))
-	shortcuts := card(container.NewVBox(text("快捷键", 17, textColor, true), space(6), widget.NewLabel("Ctrl + Alt + F12       切换首台远端设备 / 返回本机"), widget.NewLabel("Ctrl + Alt + Esc       紧急返回本机")))
-	save := widget.NewButtonWithIcon("保存设置", theme.ConfirmIcon(), func() {
+	inputCard := card(container.NewVBox(container.NewBorder(nil, nil, text(tr("Input sharing"), 19, textColor, true), input, nil), space(8), inputHint))
+	clipCard := card(container.NewVBox(container.NewBorder(nil, nil, text(tr("Text clipboard"), 19, textColor, true), clip, nil), space(8), clipHint))
+	shortcuts := card(container.NewVBox(text(tr("Shortcuts"), 17, textColor, true), space(6), widget.NewLabel(tr("Ctrl + Alt + F12       Switch to the first remote computer or return here")), widget.NewLabel(tr("Ctrl + Alt + Esc       Return to this computer immediately"))))
+	save := widget.NewButtonWithIcon(tr("Save settings"), theme.ConfirmIcon(), func() {
 		next := c.Clone()
 		next.Input = input.Checked
 		next.Clipboard = clip.Checked
@@ -46,7 +51,7 @@ func (g *gui) inputPage() fyne.CanvasObject {
 	body := container.NewVBox(header, space(24), inputCard, space(12), clipCard, space(12), shortcuts, space(12), container.NewHBox(layout.NewSpacer(), save))
 	if runtime.GOOS == "darwin" {
 		body.Add(space(12))
-		body.Add(container.NewHBox(widget.NewButton("辅助功能权限", func() { g.openURL("x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") }), widget.NewButton("输入监控权限", func() { g.openURL("x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent") })))
+		body.Add(container.NewHBox(widget.NewButton(tr("Accessibility permissions"), func() { g.openURL("x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") }), widget.NewButton(tr("Input Monitoring permissions"), func() { g.openURL("x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent") })))
 	}
 	return container.NewVScroll(body)
 }
@@ -72,8 +77,8 @@ func (g *gui) editLayout() {
 		width, height := widget.NewEntry(), widget.NewEntry()
 		width.SetText(fmt.Sprint(c.ScreenWidth))
 		height.SetText(fmt.Sprint(c.ScreenHeight))
-		items = append(items, widget.NewFormItem("物理设备路径", devices), widget.NewFormItem("桌面宽 / 高", container.NewGridWithColumns(2, width, height)))
-		d := dialog.NewForm("布局与 Linux 输入设备", "保存", "取消", items, func(ok bool) {
+		items = append(items, widget.NewFormItem(tr("Physical device paths"), devices), widget.NewFormItem(tr("Desktop width / height"), container.NewGridWithColumns(2, width, height)))
+		d := dialog.NewForm(tr("Layout and Linux input devices"), tr("Save"), tr("Cancel"), items, func(ok bool) {
 			if !ok {
 				return
 			}
@@ -96,7 +101,7 @@ func (g *gui) editLayout() {
 		d.Show()
 		return
 	}
-	d := dialog.NewForm("屏幕位置 · 左负右正，上负下正", "保存", "取消", items, func(ok bool) {
+	d := dialog.NewForm(tr("Screen coordinates · Right and down are positive"), tr("Save"), tr("Cancel"), items, func(ok bool) {
 		if !ok {
 			return
 		}
@@ -114,11 +119,11 @@ func applyCoordinates(c *config.Config, xs, ys []*widget.Entry) error {
 	for i := range c.Screens {
 		x, err := strconv.Atoi(xs[i].Text)
 		if err != nil {
-			return errors.New("屏幕位置须为整数")
+			return errors.New(tr("Screen coordinates must be integers"))
 		}
 		y, err := strconv.Atoi(ys[i].Text)
 		if err != nil {
-			return errors.New("屏幕位置须为整数")
+			return errors.New(tr("Screen coordinates must be integers"))
 		}
 		c.Screens[i].X = x
 		c.Screens[i].Y = y

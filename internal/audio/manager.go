@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"superflow.local/superflow/internal/config"
+	"superflow.local/superflow/internal/i18n"
 	"superflow.local/superflow/internal/wire"
 )
 
@@ -127,7 +128,7 @@ func (processLog) Write(p []byte) (int, error) {
 		text = text[:2048]
 	}
 	if text != "" {
-		slog.Warn("音频设备接口", "detail", text)
+		slog.Warn(i18n.T("Audio device"), "detail", text)
 	}
 	return len(p), nil
 }

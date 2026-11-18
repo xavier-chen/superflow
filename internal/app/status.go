@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"superflow.local/superflow/internal/audio"
+	"superflow.local/superflow/internal/i18n"
 )
 
 type PeerStatus struct {
@@ -47,7 +48,7 @@ func (a *App) Select(name string) error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	if !a.canControl || a.router == nil || a.config.Mode != "hub" {
-		return errors.New("键鼠主控尚未运行")
+		return errors.New(i18n.T("The keyboard and mouse host is not running"))
 	}
 	return a.router.Select(name)
 }

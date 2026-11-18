@@ -1,9 +1,0 @@
-FROM soundflow-test:arm64
-USER root
-RUN apt-get update && apt-get install -y --no-install-recommends pipewire pipewire-pulse wireplumber dbus \
-    && rm -rf /var/lib/apt/lists/*
-# The container has no logind or Bluetooth hardware. Keep ordinary audio policy,
-# disabling only the Bluetooth seat monitor (WirePlumber 0.4 configuration).
-RUN mkdir -p /etc/wireplumber/bluetooth.lua.d \
-    && printf '%s\n' 'bluez_monitor.properties["with-logind"] = false' > /etc/wireplumber/bluetooth.lua.d/80-container.lua
-USER soundflow

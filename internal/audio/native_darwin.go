@@ -13,6 +13,8 @@ import (
 	"unsafe"
 
 	"github.com/ebitengine/purego"
+
+	"superflow.local/superflow/internal/i18n"
 )
 
 type asbd struct {
@@ -225,7 +227,7 @@ func runQueue(ctx context.Context, ring *Ring, id string, capture bool) error {
 		}
 	}
 	if code := aq.start(queue, 0); code != 0 {
-		return fmt.Errorf("AudioQueue start: %d (请检查所选设备、采样率与麦克风权限)", code)
+		return fmt.Errorf(i18n.T("AudioQueue start: %d (check the selected device, sample rate, and microphone permission)"), code)
 	}
 	select {
 	case <-ctx.Done():
@@ -236,7 +238,7 @@ func runQueue(ctx context.Context, ring *Ring, id string, capture bool) error {
 }
 func NativeCapture(ctx context.Context, w io.Writer, id string, loopback bool) error {
 	if loopback {
-		return errors.New("macOS 系统声音采集请选择虚拟音频输入设备的 --device UID")
+		return errors.New(i18n.T("For macOS system audio capture, pass the virtual input UID with --device"))
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()

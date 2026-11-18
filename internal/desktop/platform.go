@@ -41,12 +41,12 @@ func (g *gui) syncTray(available bool) {
 }
 func (g *gui) backgroundDescription() string {
 	if g.trayAvailable {
-		return "关闭后继续共享。点击托盘图标或再次打开 SuperFlow，即可返回窗口。"
+		return tr("Sharing continues when you close the window. Use the tray or reopen SuperFlow to return.")
 	}
 	if g.canRecover {
-		return "当前桌面未提供托盘。关闭后继续共享，再次打开 SuperFlow 即可返回窗口。"
+		return tr("This desktop has no tray. Reopen SuperFlow to return to your running session.")
 	}
-	return "关闭窗口后会退出应用。"
+	return tr("Closing the window exits SuperFlow.")
 }
 func (g *gui) installShortcuts() {
 	modifier := fyne.KeyModifierControl

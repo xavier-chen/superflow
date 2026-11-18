@@ -1,6 +1,6 @@
 # SuperFlow Go 开发与使用
 
-新版是 SuperFlow 0.6.0-alpha 托盘应用。所有新增应用代码、系统接口适配、界面、构建工具和测试使用 Go。原生 GUI 使用 Fyne，依赖系统图形工具链；无界面核心以 `CGO_ENABLED=0` 构建六个平台目标。旧版源码只保留供回归对照，新版不启动 Swift、Python 或 Deskflow 进程。
+SuperFlow 0.7.0-alpha 是 Go 托盘应用。原生界面使用 Fyne，需要系统图形工具链。无界面核心以 `CGO_ENABLED=0` 构建六个平台目标。界面支持英文和简体中文，默认跟随系统，支持在首次向导和设置中即时切换。
 
 ## 当前能做什么
 
@@ -53,7 +53,7 @@ go run ./cmd/superflow-build --all
 
 输出在 `dist/superflow/`，例如 `superflow-darwin-arm64`、`superflow-windows-amd64.exe`。以下用 `superflow` 代表对应的可执行文件，首次测试可直接使用其完整路径。
 
-程序不要求安装 Deskflow。Opus 编解码使用运行时动态库：macOS 优先读取应用包内 `Contents/Frameworks/libopus.0.dylib`；Linux 优先读取程序旁 `lib/libopus.so.0`，也支持发行版运行库；Windows 将可信来源的 `opus.dll` 放在程序旁。当前 Mac/Linux 发行包包含对应的库和许可，安装到本机时一起复制。也可以把 `audio.codec` 设为 `pcm`，不加载 Opus。`SUPERFLOW_OPUS_LIBRARY` 可以指定库的绝对路径，兼容旧变量 `SOUNDFLOW_OPUS_LIBRARY`。各桌面包均带实际依赖的第三方许可说明。
+程序不要求安装 Deskflow。Opus 编解码使用运行时动态库：macOS 优先读取应用包内 `Contents/Frameworks/libopus.0.dylib`；Linux 优先读取程序旁 `lib/libopus.so.0`，也支持发行版运行库；Windows 将可信来源的 `opus.dll` 放在程序旁。当前 Mac/Linux 发行包包含对应的库和许可，安装到本机时一起复制。也可以把 `audio.codec` 设为 `pcm`，不加载 Opus。`SUPERFLOW_OPUS_LIBRARY` 可以指定库的绝对路径。各桌面包均带实际依赖的第三方许可说明。
 
 ## 托盘与图形界面
 
@@ -84,7 +84,7 @@ go run ./cmd/superflow-build --all
 
 可单独在 GUI 点击“安装到本机”，或使用桌面版 `superflow install --config PATH`。安装和启动项保留指定配置路径，不重建配对；不安装驱动或修改系统权限。相同配置只运行一个桌面进程，本机鉴权 IPC 仅用于唤回窗口，不提供设置或输入控制接口。
 
-GUI 直接调用本地 Go 控制层，配置保存保留设备身份并检查并发修改，自动保留新设备布局、音量等不相关的后台更新；不暴露 HTTP 控制端口。旧版 `dist/SoundFlow.app` 与新版 `dist/SuperFlow.app` 是不同程序，请使用新版。
+GUI 直接调用本地 Go 控制层，配置保存保留设备身份并检查并发修改，自动保留新设备布局、音量等不相关的后台更新；不暴露 HTTP 控制端口。
 
 ## 两台机器开始使用
 
@@ -104,9 +104,9 @@ superflow pair --name linux --server 192.168.1.10:42800
 
 按提示粘贴主控配对码，再执行 `superflow run`。Windows 节点用 `--name windows`。设备名必须与主控 `screens` 中的名称一致才能通过边缘或快捷键选择该设备。
 
-默认配置位于系统用户配置目录下的 `SuperFlow/v2.json`。首次使用默认路径会从 `SoundFlow/v2.json` 迁移 Go 旧配置，保留 ID、密钥和证书，旧文件保留。每条命令都可用 `--config PATH` 指定单独配置。`init` 和 `pair` 拒绝覆盖已有文件，避免误删原设备身份；重配对请先备份旧文件并使用新路径。
+默认配置位于系统用户配置目录下的 `SuperFlow/v2.json`。首次使用默认路径会迁移旧版 Go 配置并保留配对身份。每条命令都可用 `--config PATH` 指定单独配置。`init` 和 `pair` 拒绝覆盖已有文件，避免误删原设备身份；重配对请先备份旧文件并使用新路径。
 
-防火墙允许主控 UDP **42800**。必须能够直接连接主控；无云端中转。旧版 `SF1-` 密钥与 42790/42791 端口不用于新版。
+防火墙允许主控 UDP **42800**。必须能够直接连接主控；无云端中转。
 
 配对码包含服务器证书指纹和组连接密钥。节点认证后才进入会话；客户端同时验证指纹和证书有效期。持有同一配对码的设备属于同一信任组，不能据此声称拥有每设备独立授权或防冒充身份。配置文件包含私密材料，Unix 创建权限为 0600，不要提交到版本库。
 

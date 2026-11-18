@@ -8,6 +8,8 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+
+	"superflow.local/superflow/internal/i18n"
 )
 
 func openOpus() (uintptr, error) {
@@ -22,8 +24,6 @@ func openOpus() (uintptr, error) {
 	}
 	if path := os.Getenv("SUPERFLOW_OPUS_LIBRARY"); path != "" {
 		names = []string{path}
-	} else if path := os.Getenv("SOUNDFLOW_OPUS_LIBRARY"); path != "" {
-		names = []string{path}
 	}
 	var last error
 	for _, name := range names {
@@ -33,5 +33,5 @@ func openOpus() (uintptr, error) {
 		}
 		last = err
 	}
-	return 0, errors.Join(errors.New("未找到 libopus，请安装 Opus 或将 audio.codec 设为 pcm"), last)
+	return 0, errors.Join(errors.New(i18n.T("libopus was not found. Install Opus or set audio.codec to pcm.")), last)
 }

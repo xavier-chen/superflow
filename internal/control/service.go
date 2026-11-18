@@ -15,6 +15,7 @@ import (
 	"superflow.local/superflow/internal/clipboard"
 	"superflow.local/superflow/internal/config"
 	"superflow.local/superflow/internal/discovery"
+	"superflow.local/superflow/internal/i18n"
 )
 
 type Service struct {
@@ -59,10 +60,10 @@ func (s *Service) start() error {
 		return s.ctx.Err()
 	}
 	if s.config == nil {
-		return errors.New("请先创建配置")
+		return errors.New(i18n.T("Create a configuration first"))
 	}
 	if s.running() {
-		return errors.New("SuperFlow 已在运行")
+		return errors.New(i18n.T("SuperFlow is already running"))
 	}
 	r, err := app.New(s.config)
 	if err != nil {
@@ -174,7 +175,7 @@ func (s *Service) rememberLayouts(ctx context.Context, r *app.App) {
 						s.mu.Unlock()
 					} else {
 						s.mu.Lock()
-						s.lastError = "自动布局未保存：" + err.Error()
+						s.lastError = i18n.T("Could not save automatic layout: ") + err.Error()
 						s.mu.Unlock()
 					}
 				}
@@ -228,7 +229,7 @@ func (s *Service) Select(name string) error {
 	r := s.runtime
 	s.mu.Unlock()
 	if r == nil {
-		return errors.New("请先启动主控")
+		return errors.New(i18n.T("Start the host first"))
 	}
 	return r.Select(name)
 }
@@ -262,7 +263,7 @@ func (s *Service) Reload() error {
 	running := s.running()
 	s.mu.Unlock()
 	if running {
-		return errors.New("请先停止，再重新载入配置")
+		return errors.New(i18n.T("Pause sharing before reloading the configuration"))
 	}
 	c, err := config.LoadCompatible(s.path)
 	if err != nil {
@@ -283,7 +284,7 @@ func (s *Service) Apply(ctx context.Context, expected, next *config.Config) erro
 		return err
 	}
 	if next.ID != expected.ID || next.Secret != expected.Secret || next.Pin != expected.Pin || next.Certificate != expected.Certificate || next.PrivateKey != expected.PrivateKey || next.Mode != expected.Mode {
-		return errors.New("设置保存不能替换设备身份或角色")
+		return errors.New(i18n.T("Saving settings cannot change the device identity or role"))
 	}
 	s.op.Lock()
 	defer s.op.Unlock()
@@ -317,13 +318,13 @@ func (s *Service) Apply(ctx context.Context, expected, next *config.Config) erro
 }
 func (s *Service) SetGain(name string, gain float64) error {
 	if math.IsNaN(gain) || math.IsInf(gain, 0) || gain < 0 || gain > 2 {
-		return errors.New("音量应在 0–200% 之间")
+		return errors.New(i18n.T("Volume must be between 0 and 200%"))
 	}
 	s.op.Lock()
 	defer s.op.Unlock()
 	expected := s.Config()
 	if expected == nil {
-		return errors.New("尚未配置")
+		return errors.New(i18n.T("Not configured"))
 	}
 	next := expected.Clone()
 	if next.Audio.Gains == nil {
@@ -350,7 +351,7 @@ func (s *Service) UseClipboard(backend clipboard.Backend) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.running() {
-		return errors.New("请先暂停共享，再切换剪贴板适配")
+		return errors.New(i18n.T("Pause sharing before changing the clipboard backend"))
 	}
 	s.clipboard = backend
 	return nil

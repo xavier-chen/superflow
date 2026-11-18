@@ -16,7 +16,6 @@ import (
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/dialog"
 	fynedesktop "fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
@@ -26,6 +25,7 @@ import (
 	"superflow.local/superflow/internal/brand"
 	"superflow.local/superflow/internal/config"
 	"superflow.local/superflow/internal/control"
+	"superflow.local/superflow/internal/i18n"
 	"superflow.local/superflow/internal/input"
 	"superflow.local/superflow/internal/instance"
 )
@@ -85,6 +85,7 @@ func (l *guiLog) Write(b []byte) (int, error) {
 	return len(b), nil
 }
 func Run(ctx context.Context, path string, options ...Options) error {
+	setLanguage(i18n.System)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	guard, err := instance.Open(ctx, path)
@@ -114,7 +115,7 @@ func Run(ctx context.Context, path string, options ...Options) error {
 	})
 	a.Lifecycle().SetOnEnteredForeground(func() { fyne.Do(g.activated) })
 	if err := service.EnableDiscovery(); err != nil {
-		slog.Warn("局域网发现不可用，仍可使用连接邀请", "error", err)
+		slog.Warn(tr("Network discovery is unavailable. Connection invitations still work."), "error", err)
 	}
 	original := slog.Default()
 	slog.SetDefault(slog.New(slog.NewTextHandler(g.log, nil)))
@@ -132,7 +133,7 @@ func Run(ctx context.Context, path string, options ...Options) error {
 		g.window.Show()
 	}
 	if g.config != nil && a.Preferences().BoolWithFallback("start-sharing", false) {
-		g.perform("正在恢复共享", g.service.Start, nil)
+		g.perform("Resuming sharing…", g.service.Start, nil)
 	}
 	go g.watch()
 	go func() {
@@ -149,37 +150,45 @@ func Run(ctx context.Context, path string, options ...Options) error {
 	return nil
 }
 func newGUI(ctx context.Context, cancel context.CancelFunc, a fyne.App, service *control.Service) *gui {
-	loadTranslations()
+	setLanguage(a.Preferences().StringWithFallback(languagePreference, i18n.System))
 	g := &gui{app: a, window: a.NewWindow("SuperFlow"), service: service, ctx: ctx, cancel: cancel, config: service.Config(), status: service.Snapshot(), lastBytes: map[string][2]uint64{}, log: &guiLog{}}
 	g.visible.Store(true)
 	_ = service.UseClipboard(g.clipboardBackend())
 	g.window.Resize(fyne.NewSize(1120, 820))
 	g.window.SetPadded(false)
+	g.buildContent(0)
+	g.installShortcuts()
+	return g
+}
+
+func (g *gui) buildContent(page int) {
+	g.nav = nil
 	g.content = container.NewStack()
-	g.message = widget.NewLabel("就绪")
+	g.message = widget.NewLabel(tr("Ready"))
+	if g.busy {
+		g.message.SetText(tr("Working…"))
+	}
 	g.message.Wrapping = fyne.TextWrapWord
 	g.message.Importance = widget.LowImportance
 	main := container.NewBorder(nil, container.NewVBox(rule(), g.message), nil, nil, g.content)
 	root := container.NewBorder(nil, nil, g.sidebar(), nil, main)
 	g.window.SetContent(root)
-	g.showPage(0)
-	g.installShortcuts()
-	return g
+	g.showPage(page)
 }
 func (g *gui) sidebar() fyne.CanvasObject {
 	logo := canvas.NewImageFromResource(fyne.NewStaticResource("superflow.svg", []byte(brand.SVG)))
 	logo.FillMode = canvas.ImageFillContain
 	logo.SetMinSize(fyne.NewSize(28, 28))
 	brandLine := container.NewHBox(logo, text("SuperFlow", 19, textColor, true))
-	nav := container.NewVBox(space(12), brandLine, space(32), text("工作台", 11, mutedColor, false), space(4))
+	nav := container.NewVBox(space(12), brandLine, space(32), text(tr("Workspace"), 11, mutedColor, false), space(4))
 	for i, item := range []struct {
 		name string
 		icon fyne.Resource
-	}{{"工作空间", theme.HomeIcon()}, {"设备", theme.ComputerIcon()}, {"声音与麦克风", theme.VolumeUpIcon()}, {"键鼠与剪贴板", theme.ContentCopyIcon()}, {"屏幕布局", theme.GridIcon()}, {"设置", theme.SettingsIcon()}} {
+	}{{tr("Overview"), theme.HomeIcon()}, {tr("Devices"), theme.ComputerIcon()}, {tr("Audio & microphone"), theme.VolumeUpIcon()}, {tr("Input & clipboard"), theme.ContentCopyIcon()}, {tr("Screen layout"), theme.GridIcon()}, {tr("Settings"), theme.SettingsIcon()}} {
 		index := i
 		if i == 2 {
 			nav.Add(space(20))
-			nav.Add(text("共享设置", 11, mutedColor, false))
+			nav.Add(text(tr("Sharing"), 11, mutedColor, false))
 			nav.Add(space(4))
 		}
 		if i == 5 {
@@ -193,7 +202,7 @@ func (g *gui) sidebar() fyne.CanvasObject {
 		g.nav = append(g.nav, b)
 		nav.Add(b)
 	}
-	footer := container.NewVBox(rule(), space(8), text("SuperFlow  "+strings.Split(core.Release, "-")[0], 11, mutedColor, false), text("预览版本", 10, mutedColor, false))
+	footer := container.NewVBox(rule(), space(8), text("SuperFlow  "+strings.Split(core.Release, "-")[0], 11, mutedColor, false), text(tr("Preview"), 10, mutedColor, false))
 	inside := container.NewBorder(nav, footer, nil, nil, layout.NewSpacer())
 	r := canvas.NewRectangle(sidebarColor)
 	r.SetMinSize(fyne.NewSize(208, 1))
@@ -247,11 +256,11 @@ func (g *gui) heading(title, subtitle string, action fyne.CanvasObject) fyne.Can
 func (g *gui) overviewPage() fyne.CanvasObject {
 	g.statusLabel = widget.NewLabel("")
 	g.statusLabel.Importance = widget.LowImportance
-	g.start = widget.NewButtonWithIcon("开始共享", theme.MediaPlayIcon(), g.toggle)
+	g.start = widget.NewButtonWithIcon(tr("Start sharing"), theme.MediaPlayIcon(), g.toggle)
 	g.start.Importance = widget.HighImportance
-	add := widget.NewButtonWithIcon("添加设备", theme.ContentAddIcon(), g.addDevice)
-	header := g.heading("工作空间", "管理设备连接与共享内容", container.NewHBox(add, g.start))
-	g.online = text("0 台", 13, textColor, false)
+	add := widget.NewButtonWithIcon(tr("Add device"), theme.ContentAddIcon(), g.addDevice)
+	header := g.heading(tr("Overview"), tr("Manage connections and sharing"), container.NewHBox(add, g.start))
+	g.online = text(fmt.Sprintf(tr("%d"), 0), 13, textColor, false)
 	g.rtt = text("—", 13, textColor, false)
 	g.traffic = text("↑ 0 K  ↓ 0 K", 13, textColor, false)
 	metric := func(label string, value fyne.CanvasObject, width float32) fyne.CanvasObject {
@@ -259,15 +268,15 @@ func (g *gui) overviewPage() fyne.CanvasObject {
 		min.SetMinSize(fyne.NewSize(width, 1))
 		return container.NewStack(min, container.NewHBox(text(label, 12, mutedColor, false), value))
 	}
-	metrics := container.NewHBox(metric("在线", g.online, 84), metric("往返", g.rtt, 112), metric("传输", g.traffic, 168))
+	metrics := container.NewHBox(metric(tr("Online"), g.online, 84), metric(tr("RTT"), g.rtt, 112), metric(tr("Transfer"), g.traffic, 168))
 	telemetry := container.NewBorder(nil, nil, g.statusLabel, metrics, nil)
-	edit := widget.NewButtonWithIcon("调整布局", theme.SettingsIcon(), func() { g.showPage(4) })
+	edit := widget.NewButtonWithIcon(tr("Arrange screens"), theme.SettingsIcon(), func() { g.showPage(4) })
 	edit.Importance = widget.LowImportance
-	mapHeading := container.NewBorder(nil, nil, text("设备布局", 14, textColor, true), edit, nil)
+	mapHeading := container.NewBorder(nil, nil, text(tr("Device layout"), 14, textColor, true), edit, nil)
 	g.workspace = container.NewStack(space(190))
 	board := container.NewBorder(container.NewVBox(mapHeading, space(8)), container.NewVBox(space(8), rule(), telemetry), nil, nil, g.workspace)
-	section := container.NewVBox(text("共享内容", 14, textColor, true), space(8), g.overviewRoutes())
-	footer := container.NewHBox(text("快捷键", 11, mutedColor, false), text("Ctrl + Alt + Esc", 11, textColor, false), text("返回本机", 11, mutedColor, false), layout.NewSpacer(), text("关闭窗口后继续运行 · 再次打开可返回", 11, mutedColor, false))
+	section := container.NewVBox(text(tr("Shared features"), 14, textColor, true), space(8), g.overviewRoutes())
+	footer := container.NewHBox(text(tr("Shortcuts"), 11, mutedColor, false), text("Ctrl + Alt + Esc", 11, textColor, false), text(tr("Return to this computer"), 11, mutedColor, false), layout.NewSpacer(), text(tr("Closes to background · Reopen to return"), 11, mutedColor, false))
 	bottom := container.NewVBox(space(16), section, space(12), footer)
 	return container.NewBorder(container.NewVBox(header, space(20), rule(), space(12)), bottom, nil, nil, board)
 }
@@ -342,13 +351,13 @@ func (g *gui) refresh() {
 	g.lastBytes = next
 	if g.start != nil {
 		if g.config == nil {
-			g.start.SetText("建立工作空间")
+			g.start.SetText(tr("Set up workspace"))
 			g.start.SetIcon(theme.ContentAddIcon())
 		} else if running(g.status.State) {
-			g.start.SetText("暂停共享")
+			g.start.SetText(tr("Pause sharing"))
 			g.start.SetIcon(theme.MediaPauseIcon())
 		} else {
-			g.start.SetText("开始共享")
+			g.start.SetText(tr("Start sharing"))
 			g.start.SetIcon(theme.MediaPlayIcon())
 		}
 		if g.busy {
@@ -361,7 +370,7 @@ func (g *gui) refresh() {
 		g.statusLabel.SetText(stateText(g.status.State))
 	}
 	if g.online != nil {
-		g.online.Text = fmt.Sprintf("%d 台", len(g.status.Peers))
+		g.online.Text = fmt.Sprintf(tr("%d"), len(g.status.Peers))
 		g.online.Refresh()
 	}
 	if g.rtt != nil {
@@ -400,7 +409,7 @@ func (g *gui) perform(success string, fn func() error, after func()) {
 		return
 	}
 	g.busy = true
-	g.message.SetText("正在处理…")
+	g.message.SetText(tr("Working…"))
 	g.refresh()
 	go func() {
 		err := fn()
@@ -410,9 +419,9 @@ func (g *gui) perform(success string, fn func() error, after func()) {
 			g.config = g.service.Config()
 			if err != nil {
 				g.message.SetText(err.Error())
-				dialog.ShowError(err, g.window)
+				g.showError(err)
 			} else {
-				g.message.SetText(success)
+				g.message.SetText(tr(success))
 				if after != nil {
 					after()
 				}
@@ -427,7 +436,7 @@ func (g *gui) toggle() {
 		return
 	}
 	if running(g.status.State) {
-		g.perform("共享已暂停", func() error {
+		g.perform("Sharing paused", func() error {
 			ctx, cancel := context.WithTimeout(g.ctx, 5*time.Second)
 			defer cancel()
 			return g.service.Stop(ctx)
@@ -436,7 +445,7 @@ func (g *gui) toggle() {
 		if !g.checkInput(g.config) {
 			return
 		}
-		g.perform("正在建立连接", g.service.Start, nil)
+		g.perform("Starting connection…", g.service.Start, nil)
 	}
 }
 func (g *gui) applyFrom(expected, next *config.Config) {
@@ -448,7 +457,7 @@ func (g *gui) applyFrom(expected, next *config.Config) {
 			return
 		}
 	}
-	g.perform("设置已保存", func() error {
+	g.perform("Settings saved", func() error {
 		ctx, cancel := context.WithTimeout(g.ctx, 5*time.Second)
 		defer cancel()
 		return g.service.Apply(ctx, expected, next)
@@ -469,7 +478,7 @@ func (g *gui) activated() {
 
 func (g *gui) workspaceSignature() string {
 	var screens []config.Screen
-	name, mode := "本机", ""
+	name, mode := tr("This computer"), ""
 	if g.config != nil {
 		screens = g.config.Screens
 		name = g.config.Name
@@ -508,18 +517,18 @@ func (g *gui) updateTray() {
 		return
 	}
 	g.lastTray = key
-	toggle := "开始共享"
+	toggle := tr("Start sharing")
 	if running(g.status.State) {
-		toggle = "暂停共享"
+		toggle = tr("Pause sharing")
 	}
 	status := fyne.NewMenuItem("SuperFlow · "+stateText(g.status.State), nil)
 	status.Disabled = true
 	item := func(label string, action func()) *fyne.MenuItem {
 		return fyne.NewMenuItem(label, func() { fyne.Do(action) })
 	}
-	quit := item("退出 SuperFlow", g.quit)
+	quit := item(tr("Quit SuperFlow"), g.quit)
 	quit.IsQuit = true
-	menu := fyne.NewMenu("SuperFlow", status, fyne.NewMenuItemSeparator(), item("打开 SuperFlow", g.reveal), item(toggle, g.toggle), item("返回本机", func() { g.perform("已返回本机", g.service.ReturnLocal, nil) }), item("添加设备", func() { g.reveal(); g.addDevice() }), fyne.NewMenuItemSeparator(), quit)
+	menu := fyne.NewMenu("SuperFlow", status, fyne.NewMenuItemSeparator(), item(tr("Open SuperFlow"), g.reveal), item(toggle, g.toggle), item(tr("Return to this computer"), func() { g.perform("Returned to this computer", g.service.ReturnLocal, nil) }), item(tr("Add device"), func() { g.reveal(); g.addDevice() }), fyne.NewMenuItemSeparator(), quit)
 	g.tray.SetSystemTrayMenu(menu)
 	g.trayMenu = menu
 }
@@ -527,7 +536,7 @@ func running(state string) bool {
 	return state == "starting" || state == "connecting" || state == "connected" || state == "listening" || state == "stopping"
 }
 func stateText(state string) string {
-	if text, ok := map[string]string{"unconfigured": "尚未配置", "stopped": "共享已停止", "starting": "正在启动", "connecting": "正在连接", "connected": "设备已连接", "listening": "等待设备连接", "stopping": "正在停止", "error": "需要检查设置"}[state]; ok {
+	if text, ok := map[string]string{"unconfigured": tr("Not configured"), "stopped": tr("Sharing stopped"), "starting": tr("Starting…"), "connecting": tr("Connecting…"), "connected": tr("Device connected"), "listening": tr("Waiting for devices"), "stopping": tr("Stopping…"), "error": tr("Check settings")}[state]; ok {
 		return text
 	}
 	return state

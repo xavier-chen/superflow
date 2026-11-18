@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"superflow.local/superflow/internal/brand"
+	"superflow.local/superflow/internal/i18n"
 )
 
 type locations struct{ Executable, Launcher, Autostart, Icon string }
@@ -71,7 +72,7 @@ func installAt(platform, source string, target locations, profile string) (strin
 	if platform == "darwin" {
 		bundle := filepath.Dir(filepath.Dir(filepath.Dir(source)))
 		if !strings.HasSuffix(bundle, ".app") {
-			return "", errors.New("请使用打包后的 SuperFlow.app 安装")
+			return "", errors.New(i18n.T("Install from a packaged SuperFlow.app"))
 		}
 		destination := filepath.Dir(filepath.Dir(filepath.Dir(target.Executable)))
 		if filepath.Clean(bundle) != filepath.Clean(destination) {
@@ -82,7 +83,7 @@ func installAt(platform, source string, target locations, profile string) (strin
 				relative, _ := filepath.Rel(bundle, path)
 				dest := filepath.Join(destination, relative)
 				if entry.Type()&os.ModeSymlink != 0 {
-					return errors.New("应用包中存在不支持的符号链接")
+					return errors.New(i18n.T("The app bundle contains an unsupported symbolic link"))
 				}
 				if entry.IsDir() {
 					return os.MkdirAll(dest, 0755)
@@ -140,7 +141,7 @@ func installAt(platform, source string, target locations, profile string) (strin
 func desktopEntry(executable, icon string, background bool, profiles ...string) (string, error) {
 	quote := func(value string) (string, error) {
 		if strings.ContainsAny(value, "\r\n\x00") {
-			return "", errors.New("应用路径包含不支持的字符")
+			return "", errors.New(i18n.T("The application path contains unsupported characters"))
 		}
 		value = strings.ReplaceAll(value, "\\", "\\\\\\\\")
 		value = strings.ReplaceAll(value, "%", "%%")
@@ -165,7 +166,7 @@ func desktopEntry(executable, icon string, background bool, profiles ...string) 
 		command += " --config " + profile
 	}
 	if strings.ContainsAny(icon, "\r\n\x00") {
-		return "", errors.New("图标路径包含不支持的字符")
+		return "", errors.New(i18n.T("The icon path contains unsupported characters"))
 	}
 	text := "[Desktop Entry]\nType=Application\nVersion=1.0\nName=SuperFlow\nComment=Share audio, keyboard, mouse and clipboard\nExec=" + command + "\nIcon=" + icon + "\nTerminal=false\nCategories=Utility;Network;\nStartupNotify=true\nStartupWMClass=SuperFlow\n"
 	if background {
@@ -237,7 +238,7 @@ func copyAtomic(source, destination string, mode os.FileMode) error {
 		return err
 	}
 	if err = os.Rename(name, destination); err != nil {
-		return fmt.Errorf("无法更新应用文件，请退出旧版本后重试：%w", err)
+		return fmt.Errorf(i18n.T("Could not update app files. Quit the previous version and retry: %w"), err)
 	}
 	return nil
 }

@@ -10,9 +10,12 @@ import (
 	"path/filepath"
 	"reflect"
 	"sync"
+
+	"superflow.local/superflow/internal/i18n"
 )
 
-var ErrChanged = errors.New("配置已被其他操作修改，请重新载入后保存")
+const ErrChanged = i18n.Error("The configuration changed. Reload it before saving.")
+
 var updateMu sync.Mutex
 
 // MergeEdit keeps background updates (such as newly paired screens or gain)
@@ -76,7 +79,7 @@ func migrate(oldPath, newPath string) (*Config, error) {
 		if errors.Is(err, os.ErrExist) {
 			return Load(newPath)
 		}
-		return nil, fmt.Errorf("迁移配置: %w", err)
+		return nil, fmt.Errorf(i18n.T("Could not migrate settings: %w"), err)
 	}
 	return c, nil
 }
@@ -102,11 +105,11 @@ func (c *Config) Clone() *Config {
 }
 func validateGains(gains map[string]float64) error {
 	if len(gains) > 64 {
-		return errors.New("最多保留 64 台设备的音量设置")
+		return errors.New(i18n.T("Volume settings can be saved for up to 64 devices"))
 	}
 	for name, gain := range gains {
 		if !ValidName(name) || math.IsNaN(gain) || math.IsInf(gain, 0) || gain < 0 || gain > 2 {
-			return errors.New("设备音量必须在 0–200% 之间")
+			return errors.New(i18n.T("Device volume must be between 0 and 200%"))
 		}
 	}
 	return nil
@@ -128,7 +131,7 @@ func Replace(path string, expected, next *Config) error {
 		return err
 	}
 	if info.Mode()&os.ModeSymlink != 0 {
-		return errors.New("请使用配置文件的真实路径保存设置")
+		return errors.New(i18n.T("Save to the actual configuration file path"))
 	}
 	current, err := Load(path)
 	if err != nil {

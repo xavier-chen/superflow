@@ -23,6 +23,8 @@ import (
 	"time"
 	"unicode"
 	"unicode/utf8"
+
+	"superflow.local/superflow/internal/i18n"
 )
 
 type Audio struct {
@@ -133,7 +135,7 @@ func (c *Config) Code() (string, error) {
 
 func (c *Config) Pair(code, server string) error {
 	if !strings.HasPrefix(code, "SF2-") {
-		return errors.New("Go 版配对码必须以 SF2- 开头，不能使用旧版 SF1 密钥")
+		return errors.New(i18n.T("A SuperFlow pairing code must start with SF2-"))
 	}
 	b, err := base64.RawURLEncoding.DecodeString(strings.TrimPrefix(code, "SF2-"))
 	if err != nil || len(b) != 64 {
@@ -155,7 +157,7 @@ func (c *Config) Validate() error {
 		return errors.New("invalid device ID")
 	}
 	if !ValidName(c.Name) {
-		return errors.New("设备名称不能为空或过长，请修改名称后重试")
+		return errors.New(i18n.T("Enter a shorter, non-empty device name"))
 	}
 	key, err := c.Key()
 	if err != nil || len(key) != 32 {
@@ -184,11 +186,11 @@ func (c *Config) Validate() error {
 		return errors.New("audio buffer_ms must be 10–200")
 	}
 	if len(c.ServerAlternates) > 15 {
-		return errors.New("备用连接地址过多")
+		return errors.New(i18n.T("Too many alternate connection addresses"))
 	}
 	for _, address := range c.ServerAlternates {
 		if !ValidAddress(address) {
-			return errors.New("备用连接地址无效")
+			return errors.New(i18n.T("Invalid alternate connection address"))
 		}
 	}
 	if c.Audio.Codec != "pcm" && c.Audio.Codec != "opus" && c.Audio.Codec != "auto" {
@@ -198,14 +200,14 @@ func (c *Config) Validate() error {
 		return err
 	}
 	if c.Mode == "hub" && len(c.Audio.SendMicrophone) > 0 && c.Audio.Target == "" {
-		return errors.New("请先为麦克风选择一台接收设备")
+		return errors.New(i18n.T("Choose a device to receive this microphone"))
 	}
 	seen := map[string]bool{}
 	positions := map[[2]int]bool{}
 	for _, s := range c.Screens {
 		p := [2]int{s.X, s.Y}
 		if !ValidName(s.Name) || seen[s.Name] || positions[p] {
-			return errors.New("设备名称和屏幕位置不能重复")
+			return errors.New(i18n.T("Device names and screen positions must be unique"))
 		}
 		seen[s.Name] = true
 		positions[p] = true

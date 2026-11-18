@@ -7,13 +7,12 @@ import (
 	"golang.org/x/sys/windows"
 	"os"
 	"path/filepath"
+
+	"superflow.local/superflow/internal/i18n"
 )
 
 func openOpus() (uintptr, error) {
 	path := os.Getenv("SUPERFLOW_OPUS_LIBRARY")
-	if path == "" {
-		path = os.Getenv("SOUNDFLOW_OPUS_LIBRARY")
-	}
 	if path == "" {
 		exe, err := os.Executable()
 		if err != nil {
@@ -26,7 +25,7 @@ func openOpus() (uintptr, error) {
 	}
 	dll, err := windows.LoadDLL(path)
 	if err != nil {
-		return 0, errors.New("未找到 opus.dll，请放在程序旁或将 audio.codec 设为 pcm")
+		return 0, errors.New(i18n.T("opus.dll was not found. Place it next to the app or set audio.codec to pcm."))
 	}
 	return uintptr(dll.Handle), nil
 }

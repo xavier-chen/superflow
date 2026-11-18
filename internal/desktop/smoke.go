@@ -20,6 +20,7 @@ import (
 	"superflow.local/superflow/internal/brand"
 	"superflow.local/superflow/internal/config"
 	"superflow.local/superflow/internal/control"
+	"superflow.local/superflow/internal/i18n"
 	"superflow.local/superflow/internal/instance"
 )
 
@@ -44,14 +45,15 @@ func CheckNative(parent context.Context, output string, withTray, checkClipboard
 		return err
 	}
 	defer os.RemoveAll(root)
-	c, err := config.New("hub", "本机")
+	setLanguage(i18n.System)
+	c, err := config.New("hub", tr("This computer"))
 	if err != nil {
 		return err
 	}
 	c.Input = false
 	c.Clipboard = false
 	c.Listen = "127.0.0.1:0"
-	c.Screens = append(c.Screens, config.Screen{Name: "工作站", X: 1})
+	c.Screens = append(c.Screens, config.Screen{Name: tr("Workstation"), X: 1})
 	path := filepath.Join(root, "v2.json")
 	if err = config.Save(path, c); err != nil {
 		return err
@@ -251,7 +253,7 @@ func (g *gui) nativeChecks(ctx context.Context, output, path string, watcher nat
 			}
 		}
 	})
-	if watcher != nil && !strings.Contains(strings.Join(actions, "|"), "退出 SuperFlow") {
+	if watcher != nil && !strings.Contains(strings.Join(actions, "|"), tr("Quit SuperFlow")) {
 		return errors.New("native tray menu is incomplete")
 	}
 	report := struct {

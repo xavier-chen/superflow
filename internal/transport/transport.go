@@ -69,7 +69,7 @@ func ServerTLS(c *config.Config) (*tls.Config, error) {
 	if hex.EncodeToString(h[:]) != c.Pin {
 		return nil, errors.New("certificate pin does not match hub certificate")
 	}
-	return &tls.Config{MinVersion: tls.VersionTLS13, Certificates: []tls.Certificate{cert}, NextProtos: []string{"superflow/2", "soundflow/2"}}, nil
+	return &tls.Config{MinVersion: tls.VersionTLS13, Certificates: []tls.Certificate{cert}, NextProtos: []string{"superflow/2"}}, nil
 }
 
 func ClientTLS(pin string) (*tls.Config, error) {
@@ -77,7 +77,7 @@ func ClientTLS(pin string) (*tls.Config, error) {
 	if err != nil || len(expected) != 32 {
 		return nil, errors.New("invalid server pin")
 	}
-	return &tls.Config{MinVersion: tls.VersionTLS13, NextProtos: []string{"superflow/2", "soundflow/2"},
+	return &tls.Config{MinVersion: tls.VersionTLS13, NextProtos: []string{"superflow/2"},
 		// The pairing code pins the entire certificate instead of a public CA / DNS name.
 		InsecureSkipVerify: true, VerifyConnection: func(cs tls.ConnectionState) error {
 			if len(cs.PeerCertificates) != 1 {

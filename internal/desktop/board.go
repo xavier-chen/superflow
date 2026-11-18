@@ -37,16 +37,16 @@ func (b *screenBoard) CreateRenderer() fyne.WidgetRenderer {
 	r := &boardRenderer{board: b}
 	b.tiles = nil
 	for i, screen := range b.screens {
-		detail := "拖动以调整位置"
+		detail := tr("Drag to arrange")
 		if screen.Name == b.local {
-			detail = "本机 · 拖动以调整"
+			detail = tr("This computer · Drag to arrange")
 		}
 		base := &deviceTile{name: screen.Name, detail: detail, icon: theme.ComputerIcon(), active: screen.Name == b.local}
 		if b.readOnly {
 			base.detail = b.details[screen.Name]
 			base.active = screen.Name == b.focus
 			if screen.Name == "\x00add" {
-				base.name = "添加设备"
+				base.name = tr("Add device")
 				base.icon = theme.ContentAddIcon()
 			}
 			if b.onTap != nil {

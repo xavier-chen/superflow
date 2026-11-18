@@ -9,12 +9,14 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/test"
 	"superflow.local/superflow/internal/audio"
 	"superflow.local/superflow/internal/config"
 	"superflow.local/superflow/internal/control"
+	"superflow.local/superflow/internal/i18n"
 )
 
 type captureTheme struct {
@@ -86,6 +88,43 @@ func TestRenderDesktopPages(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+		}
+	}
+}
+
+func TestChangeLanguageKeepsSharingAndDeviceIdentity(t *testing.T) {
+	g := testGUI(t, true)
+	if err := g.service.Start(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = g.service.Stop(context.Background()) })
+	deadline := time.Now().Add(3 * time.Second)
+	listener := g.service.Snapshot()
+	for listener.State != "listening" && time.Now().Before(deadline) {
+		time.Sleep(10 * time.Millisecond)
+		listener = g.service.Snapshot()
+	}
+	if listener.State != "listening" || listener.ListenAddress == "" {
+		t.Fatalf("could not start test sharing: %s %s", listener.State, listener.LastError)
+	}
+	configID := g.service.Config().ID
+	g.showPage(5)
+	for _, choice := range []struct {
+		language, option, settings, quit string
+	}{
+		{i18n.Chinese, "简体中文", "设置", "退出 SuperFlow"},
+		{i18n.English, "English", "Settings", "Quit SuperFlow"},
+	} {
+		g.languagePicker(nil).SetSelected(choice.option)
+		if got := g.app.Preferences().String(languagePreference); got != choice.language {
+			t.Fatalf("language preference = %q, want %q", got, choice.language)
+		}
+		if g.page != 5 || len(g.nav) != 6 || g.nav[5].Text != choice.settings || tr("Quit SuperFlow") != choice.quit {
+			t.Fatalf("interface did not refresh for %s", choice.language)
+		}
+		snapshot := g.service.Snapshot()
+		if g.service.Config().ID != configID || snapshot.State != "listening" || snapshot.ListenAddress != listener.ListenAddress {
+			t.Fatalf("switching to %s interrupted the service or changed the device identity", choice.language)
 		}
 	}
 }

@@ -21,6 +21,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"superflow.local/superflow/internal/i18n"
 )
 
 type record struct {
@@ -70,14 +72,14 @@ func openAt(ctx context.Context, root, configPath string) (*Instance, error) {
 		return nil, err
 	}
 	if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
-		return nil, errors.New("应用运行目录不可用")
+		return nil, errors.New(i18n.T("The app runtime directory is unavailable"))
 	}
 	if err = os.Chmod(root, 0700); err != nil {
 		return nil, err
 	}
 	lockPath := filepath.Join(root, name+".lock")
 	if info, e := os.Lstat(lockPath); e == nil && info.Mode()&os.ModeSymlink != 0 {
-		return nil, errors.New("应用锁文件不可用")
+		return nil, errors.New(i18n.T("The app lock file is unavailable"))
 	}
 	lock, err := os.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0600)
 	if err != nil {
@@ -118,7 +120,7 @@ func openAt(ctx context.Context, root, configPath string) (*Instance, error) {
 			}
 		}
 		if time.Now().After(deadline) {
-			return nil, errors.New("SuperFlow 正在启动，请稍后重新打开")
+			return nil, errors.New(i18n.T("SuperFlow is still starting. Try opening it again shortly."))
 		}
 		timer := time.NewTimer(50 * time.Millisecond)
 		select {

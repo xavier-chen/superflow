@@ -12,6 +12,7 @@ import (
 	"sync/atomic"
 
 	"github.com/ebitengine/purego"
+	"superflow.local/superflow/internal/i18n"
 	"superflow.local/superflow/internal/wire"
 )
 
@@ -103,7 +104,7 @@ func New(o Options) (Driver, error) {
 		return nil, err
 	}
 	if !mac.trusted() || o.Capture && !mac.listenAccess() {
-		return nil, errors.New("请在 macOS 系统设置中启用辅助功能权限；主控还需要输入监控权限")
+		return nil, errors.New(i18n.T("Allow Accessibility in macOS Settings. The host also needs Input Monitoring."))
 	}
 	return &nativeDriver{}, nil
 }
@@ -174,7 +175,7 @@ func (d *nativeDriver) Capture(ctx context.Context, fn func(Local) bool) error {
 	}
 	port := mac.tapCreate(1, 0, 0, mask, callback, 0)
 	if port == 0 {
-		return errors.New("CGEventTap 创建失败，请检查辅助功能和输入监控权限")
+		return errors.New(i18n.T("Could not create the input event tap. Check Accessibility and Input Monitoring."))
 	}
 	defer mac.release(port)
 	source := mac.sourceCreate(0, port, 0)

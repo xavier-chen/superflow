@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"superflow.local/superflow/internal/config"
+	"superflow.local/superflow/internal/i18n"
 )
 
 // DialAny races invitation addresses with a small stagger. Each candidate must
@@ -79,7 +80,7 @@ func DialAny(parent context.Context, c *config.Config) (*Session, error) {
 		}
 	}
 	if last == nil {
-		last = errors.New("没有可用的连接地址")
+		last = errors.New(i18n.T("No connection addresses are available"))
 	}
 	return nil, last
 }

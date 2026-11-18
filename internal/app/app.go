@@ -15,10 +15,11 @@ import (
 	"superflow.local/superflow/internal/audio"
 	"superflow.local/superflow/internal/clipboard"
 	"superflow.local/superflow/internal/config"
+	"superflow.local/superflow/internal/i18n"
 	"superflow.local/superflow/internal/input"
 	"superflow.local/superflow/internal/transport"
-	"superflow.local/superflow/internal/wire"
 	"superflow.local/superflow/internal/version"
+	"superflow.local/superflow/internal/wire"
 )
 
 type App struct {
@@ -50,7 +51,7 @@ func New(c *config.Config) (*App, error) {
 		return nil, err
 	}
 	if c.Mode == "node" && c.Server == "" {
-		return nil, errors.New("node 未配对，请先执行 pair")
+		return nil, errors.New(i18n.T("This device is not paired. Run pair first."))
 	}
 	a := &App{config: c.Clone(), peers: map[string]*transport.Session{}, status: "stopped", gains: map[string]float64{}}
 	for name, gain := range c.Audio.Gains {
@@ -97,7 +98,7 @@ func (a *App) Run(ctx context.Context) (result error) {
 		defer d.Close()
 		a.receiver = input.NewReceiver(d)
 		defer a.receiver.Reset()
-		a.router = input.NewRouter(c.Name, c.Screens, d, func(name string) { a.focus.Store(name); slog.Info("键鼠目标切换", "device", name) })
+		a.router = input.NewRouter(c.Name, c.Screens, d, func(name string) { a.focus.Store(name); slog.Info(i18n.T("Input target changed"), "device", name) })
 		a.canControl = true
 		a.mu.Unlock()
 		defer a.router.Local()
@@ -113,7 +114,7 @@ func (a *App) Run(ctx context.Context) (result error) {
 			}
 		}
 		a.clip = clipboard.NewService(b)
-		a.clip.OnError = func(err error) { slog.Warn("剪贴板暂不可用", "error", err) }
+		a.clip.OnError = func(err error) { slog.Warn(i18n.T("Clipboard temporarily unavailable"), "error", err) }
 		a.clip.OnChange = func(u clipboard.Update) {
 			a.mu.Lock()
 			defer a.mu.Unlock()
@@ -147,7 +148,7 @@ func (a *App) Run(ctx context.Context) (result error) {
 		}
 		return false
 	}
-	a.audio.OnError = func(err error) { slog.Warn("音频解码失败", "error", err) }
+	a.audio.OnError = func(err error) { slog.Warn(i18n.T("Audio decoding failed"), "error", err) }
 	a.audio.Send = func(b []byte) {
 		a.mu.Lock()
 		defer a.mu.Unlock()
@@ -181,7 +182,7 @@ func (a *App) Run(ctx context.Context) (result error) {
 		run(func() error {
 			err := a.driver.Capture(ctx, a.router.Handle)
 			if err == nil && ctx.Err() == nil {
-				return errors.New("本机键鼠捕获已停止")
+				return errors.New(i18n.T("Local input capture has stopped"))
 			}
 			return err
 		})
@@ -247,13 +248,13 @@ func (a *App) register(s *transport.Session) error {
 	if a.router != nil && a.config.Mode == "hub" {
 		a.router.Add(s.Peer.Name, s)
 	}
-	slog.Info("设备已连接", "name", s.Peer.Name, "address", s.RemoteAddr())
+	slog.Info(i18n.T("Device connected"), "name", s.Peer.Name, "address", s.RemoteAddr())
 	return nil
 }
 func (a *App) serve(ctx context.Context, s *transport.Session) {
 	defer s.Close()
 	if err := a.register(s); err != nil {
-		slog.Warn("拒绝设备连接", "error", err)
+		slog.Warn(i18n.T("Device connection rejected"), "error", err)
 		return
 	}
 	defer func() {
@@ -274,7 +275,7 @@ func (a *App) serve(ctx context.Context, s *transport.Session) {
 			_ = a.receiver.Reset()
 		}
 		a.audio.Remove(s.Peer.ID)
-		slog.Info("设备已断开，释放键鼠状态", "name", s.Peer.Name)
+		slog.Info(i18n.T("Device disconnected. Releasing remote input."), "name", s.Peer.Name)
 	}()
 	apply := func(e wire.Event) {
 		if a.config.Mode != "node" {
@@ -283,7 +284,7 @@ func (a *App) serve(ctx context.Context, s *transport.Session) {
 		}
 		if a.receiver != nil {
 			if err := a.receiver.Apply(e); err != nil {
-				slog.Error("键鼠注入失败", "error", err)
+				slog.Error(i18n.T("Input injection failed"), "error", err)
 				s.Close()
 			}
 		}
@@ -309,7 +310,7 @@ func (a *App) serve(ctx context.Context, s *transport.Session) {
 		},
 	})
 	if err != nil && ctx.Err() == nil {
-		slog.Debug("会话结束", "error", err)
+		slog.Debug(i18n.T("Session ended"), "error", err)
 	}
 }
 func (a *App) hub(ctx context.Context) error {
@@ -328,7 +329,7 @@ func (a *App) hub(ctx context.Context) error {
 		a.status = "listening"
 	}
 	a.mu.Unlock()
-	slog.Info("SuperFlow Go 已启动", "name", a.config.Name, "listen", l.Addr().String())
+	slog.Info(i18n.T("SuperFlow started"), "name", a.config.Name, "listen", l.Addr().String())
 	var wg sync.WaitGroup
 	defer wg.Wait()
 	// Limit authenticated-session setup work as well as established peers.
@@ -375,7 +376,7 @@ func (a *App) node(ctx context.Context) error {
 			a.mu.Lock()
 			a.lastError = err.Error()
 			a.mu.Unlock()
-			slog.Warn("连接失败，稍后重试", "server", a.config.Server, "error", err)
+			slog.Warn(i18n.T("Connection failed. Retrying shortly."), "server", a.config.Server, "error", err)
 		}
 		delay := backoff + time.Duration(rand.IntN(250))*time.Millisecond
 		clock := time.NewTimer(delay)

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"superflow.local/superflow/internal/config"
+	"superflow.local/superflow/internal/i18n"
 	"superflow.local/superflow/internal/wire"
 )
 
@@ -162,11 +163,11 @@ func (r *Router) Select(name string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if len(r.buttons) > 0 {
-		return errors.New("请先松开鼠标按钮")
+		return errors.New(i18n.T("Release the mouse buttons first"))
 	}
 	if name != r.local {
 		if r.peers[name] == nil {
-			return errors.New("目标设备不在线")
+			return errors.New(i18n.T("The target device is offline"))
 		}
 		found := false
 		for _, s := range r.screens {
@@ -176,12 +177,12 @@ func (r *Router) Select(name string) error {
 			}
 		}
 		if !found {
-			return errors.New("请先将目标设备加入屏幕布局")
+			return errors.New(i18n.T("Add the target to the screen layout first"))
 		}
 	}
 	r.switchTo(name, .5, .5)
 	if r.active != name {
-		return errors.New("无法切换目标，请检查输入设备权限")
+		return errors.New(i18n.T("Could not switch devices. Check input permissions."))
 	}
 	return nil
 }

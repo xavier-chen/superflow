@@ -2,17 +2,21 @@
 
 package input
 
-import "errors"
+import (
+	"errors"
+
+	"superflow.local/superflow/internal/i18n"
+)
 
 func Check(o Options) error {
 	if err := loadMac(); err != nil {
 		return err
 	}
 	if !mac.trusted() {
-		return errors.New("请先在系统设置中允许 SuperFlow 使用辅助功能，然后重新打开应用")
+		return errors.New(i18n.T("Allow SuperFlow under Accessibility in System Settings, then reopen the app"))
 	}
 	if o.Capture && !mac.listenAccess() {
-		return errors.New("请先在系统设置中允许 SuperFlow 使用输入监控，然后重新打开应用")
+		return errors.New(i18n.T("Allow SuperFlow under Input Monitoring in System Settings, then reopen the app"))
 	}
 	return nil
 }

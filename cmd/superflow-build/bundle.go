@@ -48,10 +48,21 @@ func bundleMacAt(root, executable, opusLibrary, opusLicense string, notices ...[
 			return "", err
 		}
 	}
+	localized := filepath.Join(resources, "zh-Hans.lproj")
+	if err = os.MkdirAll(localized, 0755); err != nil {
+		return "", err
+	}
+	const permissionsZH = `"NSLocalNetworkUsageDescription" = "SuperFlow 与已配对的局域网设备共享声音、键鼠与剪贴板。";
+"NSMicrophoneUsageDescription" = "SuperFlow 仅在开启麦克风共享后采集声音，并发送给选定的设备。";
+`
+	if err = os.WriteFile(filepath.Join(localized, "InfoPlist.strings"), []byte(permissionsZH), 0644); err != nil {
+		return "", err
+	}
 	plist := fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
 <key>CFBundleIdentifier</key><string>app.superflow.desktop</string>
+<key>CFBundleDevelopmentRegion</key><string>en</string>
 <key>CFBundleName</key><string>SuperFlow</string>
 <key>CFBundleDisplayName</key><string>SuperFlow</string>
 <key>CFBundleExecutable</key><string>SuperFlow</string>
@@ -62,8 +73,8 @@ func bundleMacAt(root, executable, opusLibrary, opusLicense string, notices ...[
 <key>LSMinimumSystemVersion</key><string>14.0</string>
 <key>LSUIElement</key><true/>
 <key>NSHighResolutionCapable</key><true/>
-<key>NSLocalNetworkUsageDescription</key><string>SuperFlow 与已配对的局域网设备共享声音、键鼠与剪贴板。</string>
-<key>NSMicrophoneUsageDescription</key><string>仅在你开启麦克风共享后，SuperFlow 才采集选择的麦克风并发送给目标设备。</string>
+<key>NSLocalNetworkUsageDescription</key><string>SuperFlow shares audio, input, and clipboard text with paired devices on your local network.</string>
+<key>NSMicrophoneUsageDescription</key><string>SuperFlow captures your microphone when you enable microphone sharing and sends the audio to the selected device.</string>
 </dict></plist>
 `, version.Number, version.Build)
 	if err = os.WriteFile(filepath.Join(contents, "Info.plist"), []byte(plist), 0644); err != nil {

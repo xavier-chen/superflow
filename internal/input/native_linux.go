@@ -20,6 +20,7 @@ import (
 	"github.com/jezek/xgb/xproto"
 	"github.com/jezek/xgb/xtest"
 	"golang.org/x/sys/unix"
+	"superflow.local/superflow/internal/i18n"
 	"superflow.local/superflow/internal/wire"
 )
 
@@ -79,7 +80,7 @@ func New(o Options) (Driver, error) {
 	}
 	f, err := os.OpenFile("/dev/uinput", os.O_WRONLY|unix.O_NONBLOCK, 0)
 	if err != nil {
-		return nil, fmt.Errorf("Wayland 键鼠注入需要 /dev/uinput 访问权限: %w", err)
+		return nil, fmt.Errorf(i18n.T("Wayland input injection requires access to /dev/uinput: %w"), err)
 	}
 	d.uinput = f
 	if err = d.setup(); err != nil {
@@ -148,10 +149,10 @@ func (d *linuxDriver) setup() error {
 // evdev is independent of the desktop server and works with both X11 and Wayland.
 func (d *linuxDriver) Capture(ctx context.Context, fn func(Local) bool) error {
 	if len(d.opts.Devices) == 0 {
-		return errors.New("Linux 主控需要 input_devices 指定物理键盘/鼠标的 /dev/input/by-id/...-event-* 路径与读取权限")
+		return errors.New(i18n.T("Set input_devices to readable keyboard and mouse paths under /dev/input/by-id/"))
 	}
 	if d.w < 1 || d.h < 1 {
-		return errors.New("Linux Wayland 主控需要配置 screen_width 和 screen_height；本阶段使用快捷键切换")
+		return errors.New(i18n.T("For a Wayland host, configure screen_width and screen_height and use the keyboard shortcut to switch"))
 	}
 	var files []*os.File
 	defer func() {

@@ -14,12 +14,14 @@ import (
 	"fyne.io/fyne/v2/widget"
 	core "superflow.local/superflow/internal/app"
 	"superflow.local/superflow/internal/audio"
+	"superflow.local/superflow/internal/i18n"
 	"superflow.local/superflow/internal/input"
 	"superflow.local/superflow/internal/integration"
 )
 
 func (g *gui) settingsPage() fyne.CanvasObject {
-	header := g.heading("设置", "应用行为、系统检查与安装", nil)
+	header := g.heading(tr("Settings"), tr("Preferences, system checks, and installation"), nil)
+	language := card(container.NewBorder(nil, nil, widget.NewLabel(tr("Language")), g.languagePicker(nil), nil))
 	background := newToggle(g.app.Preferences().BoolWithFallback("close-to-tray", true))
 	background.OnChanged = func(value bool) { g.app.Preferences().SetBool("close-to-tray", value) }
 	auto := newToggle(g.app.Preferences().BoolWithFallback("start-sharing", false))
@@ -31,18 +33,18 @@ func (g *gui) settingsPage() fyne.CanvasObject {
 			login.Refresh()
 			return
 		}
-		g.perform("登录启动设置已保存，下次登录生效", func() error {
+		g.perform("Sign-in preference saved. It takes effect at the next sign-in.", func() error {
 			err := integration.SetAutoStart(value, g.service.Path())
 			fyne.Do(func() { login.Checked = integration.AutoStartEnabled(); login.Refresh() })
 			return err
 		}, nil)
 	}
 	g.backgroundHint = explain(g.backgroundDescription())
-	behavior := card(container.NewVBox(text("应用行为", 17, textColor, true), space(10), container.NewBorder(nil, nil, widget.NewLabel("关闭窗口后继续运行"), background, nil), g.backgroundHint, space(4), container.NewBorder(nil, nil, widget.NewLabel("打开应用时自动恢复连接"), auto, nil), container.NewBorder(nil, nil, widget.NewLabel("登录后在后台启动"), login, nil), explain("登录启动会先安装到当前用户的应用目录，不需要管理员权限。")))
-	status := explain("正在检查系统…")
+	behavior := card(container.NewVBox(text(tr("App behavior"), 17, textColor, true), space(10), container.NewBorder(nil, nil, widget.NewLabel(tr("Keep running when the window closes")), background, nil), g.backgroundHint, space(4), container.NewBorder(nil, nil, widget.NewLabel(tr("Resume sharing when SuperFlow opens")), auto, nil), container.NewBorder(nil, nil, widget.NewLabel(tr("Start in the background at sign-in")), login, nil), explain(tr("Sign-in startup installs SuperFlow for the current user without requiring administrator access."))))
+	status := explain(tr("Checking system…"))
 	g.supportStatus = status
-	refresh := widget.NewButtonWithIcon("重新检查", theme.ViewRefreshIcon(), func() { g.checkSystem(status) })
-	detect := widget.NewButton("重新检测键鼠", func() {
+	refresh := widget.NewButtonWithIcon(tr("Check again"), theme.ViewRefreshIcon(), func() { g.checkSystem(status) })
+	detect := widget.NewButton(tr("Detect input devices"), func() {
 		if g.config == nil {
 			g.setup()
 			return
@@ -56,20 +58,20 @@ func (g *gui) settingsPage() fyne.CanvasObject {
 		}
 		g.applyFrom(g.config.Clone(), next)
 	})
-	tools := container.NewHBox(refresh, detect, widget.NewButton("声音设备", func() { g.openSoundSettings(false) }), widget.NewButton("麦克风权限", func() { g.openSoundSettings(true) }))
-	system := card(container.NewVBox(text("系统检查", 17, textColor, true), status, tools))
-	install := widget.NewButtonWithIcon("安装到本机", theme.DownloadIcon(), func() {
+	tools := container.NewHBox(refresh, detect, widget.NewButton(tr("Sound settings"), func() { g.openSoundSettings(false) }), widget.NewButton(tr("Microphone permissions"), func() { g.openSoundSettings(true) }))
+	system := card(container.NewVBox(text(tr("System check"), 17, textColor, true), status, tools))
+	install := widget.NewButtonWithIcon(tr("Install SuperFlow"), theme.DownloadIcon(), func() {
 		var destination string
-		g.perform("应用已安装，可以从应用菜单再次打开", func() error { var err error; destination, err = integration.Install(g.service.Path()); return err }, func() { g.message.SetText("已安装：" + destination) })
+		g.perform("SuperFlow is now available in the app menu", func() error { var err error; destination, err = integration.Install(g.service.Path()); return err }, func() { g.message.SetText(tr("Installed: ") + destination) })
 	})
-	copy := widget.NewButtonWithIcon("复制诊断信息", theme.ContentCopyIcon(), func() {
+	copy := widget.NewButtonWithIcon(tr("Copy diagnostics"), theme.ContentCopyIcon(), func() {
 		g.window.Clipboard().SetContent(g.diagnosticSummary())
-		g.message.SetText("诊断信息已复制，不包含配对密钥或剪贴板内容")
+		g.message.SetText(tr("Copied diagnostics without pairing credentials or clipboard text"))
 	})
-	installCard := card(container.NewVBox(text("安装与支持", 17, textColor, true), explain("三台电脑使用相同的连接邀请和共享设置。安装后可通过应用菜单唤回窗口，已有配对会保留。"), container.NewHBox(install, copy), widget.NewButton("高级配置", g.advancedSettings)))
+	installCard := card(container.NewVBox(text(tr("Installation & support"), 17, textColor, true), explain(tr("Open SuperFlow from the app menu after installation. Your paired devices remain available.")), container.NewHBox(install, copy), widget.NewButton(tr("Advanced configuration"), g.advancedSettings)))
 	about := container.NewHBox(text("SuperFlow", 14, textColor, true), text(core.Release, 11, mutedColor, false))
 	g.checkSystem(status)
-	return container.NewVScroll(container.NewVBox(header, space(20), behavior, space(12), system, space(12), installCard, space(12), about))
+	return container.NewVScroll(container.NewVBox(header, space(20), language, space(12), behavior, space(12), system, space(12), installCard, space(12), about))
 }
 func (g *gui) checkSystem(label *widget.Label) {
 	c := g.config.Clone()
@@ -81,15 +83,15 @@ func (g *gui) checkSystem(label *widget.Label) {
 			options.Devices = input.SuggestedDevices()
 			options.Capture = true
 		}
-		keys := "键鼠已就绪"
+		keys := tr("Keyboard and mouse ready")
 		if err := input.Check(options); err != nil {
-			keys = "键鼠需要设置：" + err.Error()
+			keys = tr("Input setup required: ") + err.Error()
 		}
-		codec := "高效音频可用"
+		codec := tr("Opus available")
 		if audio.OpusAvailable() != nil {
-			codec = "兼容音频可用（自动使用 PCM）"
+			codec = tr("PCM fallback available")
 		}
-		message := keys + "\n原生剪贴板已就绪 · " + codec
+		message := keys + tr("\nNative clipboard ready · ") + codec
 		fyne.Do(func() {
 			if g.supportStatus == label {
 				label.SetText(message)
@@ -122,13 +124,13 @@ func (g *gui) openSoundSettings(microphone bool) {
 				return
 			}
 		}
-		g.showError(fmt.Errorf("请在桌面的系统设置中打开“声音”，选择要使用的输入和输出设备"))
+		g.showError(i18n.Error("Choose your input and output devices in your desktop's sound settings"))
 	}
 }
 func (g *gui) diagnosticSummary() string {
-	sharing := "停止"
+	sharing := tr("Stopped")
 	if running(g.status.State) {
-		sharing = "运行中"
+		sharing = tr("Running")
 	}
-	return strings.Join([]string{"SuperFlow " + core.Release, "系统：" + runtime.GOOS + "/" + runtime.GOARCH, "共享：" + sharing, fmt.Sprintf("在线设备：%d", len(g.status.Peers)), fmt.Sprintf("托盘：%t", g.trayAvailable), "剪贴板：原生桌面接口"}, "\n")
+	return strings.Join([]string{"SuperFlow " + core.Release, tr("System: ") + runtime.GOOS + "/" + runtime.GOARCH, tr("Sharing: ") + sharing, fmt.Sprintf(tr("Online devices: %d"), len(g.status.Peers)), fmt.Sprintf(tr("Tray: %t"), g.trayAvailable), tr("Clipboard: native desktop")}, "\n")
 }

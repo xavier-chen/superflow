@@ -1,5 +1,9 @@
 # Go 版验证记录
 
+SuperFlow 0.7.0-alpha 在 Linux ARM64 隔离图形会话中分别以英文和简体中文运行。两种语言均通过六页渲染、托盘唤回、面板重启恢复、剪贴板及二次启动检查。GUI 测试验证切换语言后仍保留当前页面、共享服务和设备身份。macOS 应用包的签名和权限文案本地化文件已验证，Windows EXE 通过原生资源检查。
+
+以下为此前版本的平台验证基线。
+
 日期：2026-11-18（Asia/Shanghai）。主机为 macOS arm64，Go 1.26.4。以下结果对应 SuperFlow 0.6.0-alpha；编译通过不代表实体设备测试通过。Linux 图形检查使用隔离的 Debian 12（ARM64）/Ubuntu 24.04（x64）与 Xvfb/Openbox/Mesa 会话，不连接实体键鼠和音频设备。
 
 ## 已执行
@@ -29,7 +33,6 @@
 | Opus 实际编解码 | 1 秒 440 Hz 测试音：PCM 192,000 bytes，Opus 12,977 bytes，约 103.8 kbit/s；仅为合成信号载荷，不含包头、QUIC/IP 开销，不代表所有声音的实际码率 |
 | macOS 系统接口 | Go FFI 加载 CoreGraphics / CoreFoundation / AudioQueue 成功；读取桌面 CGRect，枚举音频设备成功；未模拟用户键盘或录制真实麦克风 |
 | Linux 原生音频接口 | arm64 PulseAudio 容器：纯 Go 播放 → 隔离 null sink → 纯 Go monitor 采集，48,000 帧、RMS 3,535.2；正常退出通过，没有打开物理声卡 |
-| 旧版移除回归 | 移除专属耳机姿态功能、校准、对应测试、权限声明和文档；旧版 Swift 剩余 9 项测试通过，通用 Mac 安装包重新构建；原 Python 11 项回归通过 |
 
 ## 复现 Go 检查
 
@@ -59,13 +62,6 @@ Linux 音频测试需要隔离的 PulseAudio 或 PipeWire-Pulse 会话，测试�
 
 ```console
 SUPERFLOW_NATIVE_AUDIO_TEST=1 go test ./internal/audio -run TestNativePulseLoopback -v
-```
-
-从 Mac 使用已有测试容器复现（容器中的声音设备是合成的）：
-
-```console
-CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go test -c -o .build/audio-linux-arm64.test ./internal/audio
-docker run --rm -v "$PWD:/work:ro" --entrypoint /bin/sh soundflow-test:arm64 -c 'mkdir -p /tmp/superflow-go-runtime && chmod 700 /tmp/superflow-go-runtime && export XDG_RUNTIME_DIR=/tmp/superflow-go-runtime && pulseaudio --start --exit-idle-time=-1 && SUPERFLOW_NATIVE_AUDIO_TEST=1 /work/.build/audio-linux-arm64.test -test.run TestNativePulseLoopback -test.v -test.timeout 20s'
 ```
 
 ## 尚需验证

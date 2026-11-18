@@ -7,6 +7,7 @@ import (
 
 	"superflow.local/superflow/internal/audio"
 	"superflow.local/superflow/internal/config"
+	"superflow.local/superflow/internal/i18n"
 )
 
 func VirtualDevice(name string) bool {
@@ -32,7 +33,7 @@ func UniqueVirtual(devices []audio.Device, kind string) string {
 }
 func AudioPreset(c *config.Config, profile, platform string, devices []audio.Device) (*config.Config, error) {
 	if c == nil {
-		return nil, errors.New("请先连接设备")
+		return nil, errors.New(i18n.T("Connect a device first"))
 	}
 	next := c.Clone()
 	switch profile {
@@ -44,7 +45,7 @@ func AudioPreset(c *config.Config, profile, platform string, devices []audio.Dev
 		if platform == "darwin" {
 			device := UniqueVirtual(devices, "capture")
 			if device == "" {
-				return nil, errors.New("系统声音需要虚拟音频输入。请先安装或选择已有的虚拟设备；麦克风不受影响。")
+				return nil, errors.New(i18n.T("System audio requires a virtual audio input. Install one or select an existing device. Microphone sharing is unaffected."))
 			}
 			args = []string{"@self", "audio-capture", "--device", device}
 		}
@@ -56,7 +57,7 @@ func AudioPreset(c *config.Config, profile, platform string, devices []audio.Dev
 		next.Audio.SendMicrophone = nil
 		next.Audio.PlayMicrophone = nil
 	default:
-		return nil, errors.New("未知音频快捷设置")
+		return nil, errors.New(i18n.T("Unknown audio preset"))
 	}
 	next.Audio.Codec = "auto"
 	return next, next.Validate()

@@ -2,6 +2,10 @@
 
 package input
 
-import "errors"
+import (
+	"errors"
 
-func Check(Options) error { return errors.New("当前系统暂不支持键鼠共享") }
+	"superflow.local/superflow/internal/i18n"
+)
+
+func Check(Options) error { return errors.New(i18n.T("Input sharing is unavailable on this platform")) }

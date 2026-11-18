@@ -37,6 +37,8 @@ A single QUIC connection carries separate reliable streams for input and clipboa
 
 ## Quick start
 
+The desktop app supports **English and Simplified Chinese**. It follows your system language by default. Change it in the welcome screen or under **Settings → Language**. The interface updates immediately while your devices stay connected.
+
 Build the desktop app with **Go 1.26+** and your platform's graphics toolchain. The same command packages the native desktop build on each OS.
 
 ```sh
@@ -45,11 +47,11 @@ go run ./cmd/superflow-build --desktop
 
 Open the resulting app and pair your computers:
 
-1. On the computer with your keyboard and mouse, select **使用这台电脑的键盘和鼠标** and copy its connection invitation.
-2. On the other computer, select **连接另一台电脑**, paste the invitation, and connect. SuperFlow fills in addresses and places the computer in your layout.
+1. On the computer with your keyboard and mouse, select **Use this keyboard and mouse** and copy its connection invitation.
+2. On the other computer, select **Connect to another computer**, paste the invitation, and connect. SuperFlow fills in addresses and places the computer in your layout.
 3. Enable the audio routes you need. Turn on system audio sharing on the source and audio playback on the destination. Enable microphone sharing separately.
 
-Under **Settings** (设置), you can install SuperFlow into your application menu and optionally start it in the background at sign-in.
+Under **Settings**, you can install SuperFlow into your application menu and optionally start it in the background at sign-in.
 
 ## Platforms
 
@@ -59,11 +61,15 @@ Under **Settings** (设置), you can install SuperFlow into your application men
 | **Windows** | `dist/SuperFlow-windows-<arch>.zip` | Build with MinGW, then open `SuperFlow.exe`. System audio capture uses WASAPI loopback. |
 | **Linux** | `dist/SuperFlow-linux-<arch>.tar.gz` | Build with a C compiler and OpenGL/X11 development libraries. The desktop app uses X11 or Xwayland. Input sharing can require access to evdev and uinput devices. |
 
-**0.6.0-alpha** has desktop builds for Apple Silicon, Windows x64, and Linux x64/ARM64. Linux tray behavior and clipboard were tested in isolated graphical sessions. Windows packaging checks passed. Windows hardware, broader Wayland support, and sign-in behavior on real desktops still need validation.
+**0.7.0-alpha** targets Apple Silicon, Windows x64, and Linux x64/ARM64. Linux tray behavior and clipboard were tested in isolated graphical sessions. Windows packaging checks passed. Windows hardware, broader Wayland support, and sign-in behavior on real desktops still need validation.
 
 For headless use, `go run ./cmd/superflow-build --all` builds the Go core for six OS and architecture combinations. The desktop app uses Fyne and requires Cgo at build time. The headless core builds with `CGO_ENABLED=0`.
 
 [Setup and configuration](docs/GO.md) · [Test results](docs/GO-TESTING.md) · [Desktop test harness](tests/desktop/README.md)
+
+## Acknowledgments
+
+Thanks to the maintainers and contributors of Fyne, quic-go, Opus, and the open-source projects behind SuperFlow. [Open-source credits](ACKNOWLEDGMENTS.md)
 
 ---
 
@@ -77,6 +83,8 @@ SuperFlow 是一款用 Go 开发的跨平台桌面工具。在同一张桌子上
 - **托盘与连接**支持一份邀请配对、自动重连和后台共享。关窗后重新打开应用，即可回到原窗口。
 
 ### 快速开始
+
+界面支持**英文和简体中文**，默认跟随系统。首次启动或在 **设置 → 界面语言** 手动切换，当前共享连接会继续运行。
 
 安装 **Go 1.26+** 和对应系统的图形开发工具链，在项目根目录运行：
 
@@ -92,9 +100,9 @@ go run ./cmd/superflow-build --desktop
 
 在 **设置** 可安装到当前用户的应用菜单、开启登录后后台启动、检查系统权限。Mac 键鼠需要辅助功能和输入监控权限，Linux 键鼠可能需要设备访问权限。Mac 系统声音采集及把远端麦克风交给其他应用使用时，需要虚拟声卡。Wayland 键鼠仍为实验功能。
 
-**当前版本为 0.6.0-alpha。** 已构建 Apple Silicon、Windows x64 和 Linux x64/ARM64 桌面包。Linux 托盘和剪贴板通过隔离桌面会话验证，Windows 已通过打包检查。Windows 真机、更多 Wayland 桌面及真实登录启动仍待验证。
+**当前版本为 0.7.0-alpha。** 桌面构建目标为 Apple Silicon、Windows x64 和 Linux x64/ARM64。Linux 托盘和剪贴板通过隔离桌面会话验证，Windows 已通过打包检查。Windows 真机、更多 Wayland 桌面及真实登录启动仍待验证。
 
-[完整配置与平台要求](docs/GO.md) · [测试记录](docs/GO-TESTING.md) · [旧版 SoundFlow](docs/LEGACY.md)
+[完整配置与平台要求](docs/GO.md) · [测试记录](docs/GO-TESTING.md) · [开源致谢](ACKNOWLEDGMENTS.md#开源致谢)
 
 ---
 

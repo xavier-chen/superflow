@@ -5,6 +5,7 @@ package desktop
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"os"
 	"runtime"
@@ -64,12 +65,15 @@ func prepareConfig(mode, name string) (*config.Config, error) {
 }
 func (g *gui) setup() {
 	var d *dialog.CustomDialog
-	control := widget.NewButtonWithIcon("使用这台电脑的键盘和鼠标", theme.ComputerIcon(), func() { d.Hide(); g.createWorkspace() })
+	control := widget.NewButtonWithIcon(tr("Use this keyboard and mouse"), theme.ComputerIcon(), func() { d.Hide(); g.createWorkspace() })
 	control.Importance = widget.HighImportance
-	join := widget.NewButtonWithIcon("连接另一台电脑", theme.NavigateNextIcon(), func() { d.Hide(); g.joinWorkspace() })
-	content := container.NewVBox(explain("键盘鼠标接在哪台电脑？连接参数与屏幕布局会自动配置。"), space(16), control, explain("键盘鼠标接在这里，用它操作其他电脑。"), space(12), join, explain("键盘鼠标接在另一台电脑，在这里粘贴连接邀请。"))
-	d = dialog.NewCustom("开始使用 SuperFlow", "稍后设置", content, g.window)
-	d.Resize(fyne.NewSize(540, 390))
+	join := widget.NewButtonWithIcon(tr("Connect to another computer"), theme.NavigateNextIcon(), func() { d.Hide(); g.joinWorkspace() })
+	content := container.NewVBox(explain(tr("Where are your keyboard and mouse connected? SuperFlow sets up the connection and screen layout automatically.")), space(16), control, explain(tr("Use these devices to control your other computers.")), space(12), join, explain(tr("Paste an invitation from the computer with the keyboard and mouse.")))
+	language := g.languagePicker(func() { d.Hide(); g.setup() })
+	content.Add(space(8))
+	content.Add(container.NewBorder(nil, nil, widget.NewLabel(tr("Language")), language, nil))
+	d = dialog.NewCustom(tr("Get started with SuperFlow"), tr("Set up later"), content, g.window)
+	d.Resize(fyne.NewSize(540, 440))
 	d.Show()
 }
 func (g *gui) createWorkspace() {
@@ -81,14 +85,14 @@ func (g *gui) createWorkspace() {
 	name := widget.NewEntry()
 	name.SetText(c.Name)
 	keys, clips := newToggle(c.Input), newToggle(c.Clipboard)
-	hint := "完成后自动连接；之后打开应用将恢复共享。声音和麦克风可在连接后按需开启。"
+	hint := tr("Sharing starts automatically and resumes when you reopen SuperFlow. Enable audio or microphone sharing after connecting.")
 	if !c.Input {
-		hint = "键鼠权限尚未就绪，可以先连接设备。授权后在“键鼠与剪贴板”开启，声音和麦克风可稍后配置。"
+		hint = tr("You can pair before granting input permissions. Once granted, turn on sharing in Input & clipboard.")
 	}
-	advanced := widget.NewAccordion(widget.NewAccordionItem("设备名称", name))
-	body := container.NewVBox(explain(hint), space(12), container.NewBorder(nil, nil, widget.NewLabel("键盘与鼠标"), keys, nil), container.NewBorder(nil, nil, widget.NewLabel("文本剪贴板"), clips, nil), space(8), advanced)
+	advanced := widget.NewAccordion(widget.NewAccordionItem(tr("Device name"), name))
+	body := container.NewVBox(explain(hint), space(12), container.NewBorder(nil, nil, widget.NewLabel(tr("Keyboard and mouse")), keys, nil), container.NewBorder(nil, nil, widget.NewLabel(tr("Text clipboard")), clips, nil), space(8), advanced)
 	var d *dialog.CustomDialog
-	start := widget.NewButton("开始使用", func() {
+	start := widget.NewButton(tr("Get started"), func() {
 		next := c.Clone()
 		next.Name = strings.TrimSpace(name.Text)
 		next.Screens[0].Name = next.Name
@@ -105,12 +109,12 @@ func (g *gui) createWorkspace() {
 		g.finishSetup(next, true)
 	})
 	start.Importance = widget.HighImportance
-	d = dialog.NewCustomWithoutButtons("准备这台电脑", container.NewVBox(body, space(14), container.NewHBox(layout.NewSpacer(), widget.NewButton("返回", func() { d.Hide(); g.setup() }), start)), g.window)
+	d = dialog.NewCustomWithoutButtons(tr("Set up this computer"), container.NewVBox(body, space(14), container.NewHBox(layout.NewSpacer(), widget.NewButton(tr("Back"), func() { d.Hide(); g.setup() }), start)), g.window)
 	d.Resize(fyne.NewSize(540, 400))
 	d.Show()
 }
 func (g *gui) finishSetup(c *config.Config, invite bool) {
-	g.perform("已保存，正在连接设备", func() error {
+	g.perform("Settings saved. Connecting devices…", func() error {
 		if err := g.service.Create(c); err != nil {
 			return err
 		}
@@ -151,7 +155,9 @@ func (g *gui) addDevice() {
 		return
 	}
 	if g.config.Mode != "hub" {
-		dialog.ShowInformation("添加更多电脑", "请在连接键盘和鼠标的电脑上打开 SuperFlow，然后复制连接邀请。", g.window)
+		d := dialog.NewInformation(tr("Add more computers"), tr("On the computer with the keyboard and mouse, open SuperFlow and copy a connection invitation."), g.window)
+		d.SetDismissText(tr("OK"))
+		d.Show()
 		return
 	}
 	c := g.config.Clone()
@@ -170,11 +176,11 @@ func (g *gui) addDevice() {
 	} else {
 		manual.SetPlaceHolder("192.168.1.10:" + port)
 	}
-	hint := explain("在另一台电脑打开 SuperFlow，选择“连接另一台电脑”，粘贴邀请即可。设备名称和屏幕位置会自动配置。")
+	hint := explain(tr("On the other computer, select “Connect to another computer” and paste the invitation. Device names and screen positions are set automatically."))
 	if !running(g.status.State) {
-		hint.SetText("先开始共享，再在另一台电脑粘贴连接邀请。配对后会自动加入工作空间。")
+		hint.SetText(tr("Start sharing, then paste the invitation on the other computer. It joins the workspace when paired."))
 	}
-	copyInvite := widget.NewButtonWithIcon("复制连接邀请", theme.ContentCopyIcon(), func() {
+	copyInvite := widget.NewButtonWithIcon(tr("Copy connection invitation"), theme.ContentCopyIcon(), func() {
 		targets := addresses
 		if len(targets) == 0 {
 			targets = []string{strings.TrimSpace(manual.Text)}
@@ -193,12 +199,12 @@ func (g *gui) addDevice() {
 		}
 		copy := func() {
 			g.window.Clipboard().SetContent(invitation)
-			g.message.SetText("邀请已复制，在另一台电脑粘贴即可")
+			g.message.SetText(tr("Invitation copied. Paste it on the other computer."))
 		}
 		if !c.AutoLayout {
 			next := c.Clone()
 			next.AutoLayout = true
-			g.perform("已开启新设备自动布局", func() error {
+			g.perform("Automatic layout enabled for new devices", func() error {
 				ctx, cancel := context.WithTimeout(g.ctx, 5*time.Second)
 				defer cancel()
 				return g.service.Apply(ctx, c, next)
@@ -208,18 +214,18 @@ func (g *gui) addDevice() {
 		}
 	})
 	copyInvite.Importance = widget.HighImportance
-	code := widget.NewButton("复制兼容配对码", func() {
+	code := widget.NewButton(tr("Copy pairing code"), func() {
 		value, err := c.Code()
 		if err == nil {
 			g.window.Clipboard().SetContent(value)
 		}
 	})
-	expert := widget.NewAccordion(widget.NewAccordionItem("手动连接", container.NewVBox(explain("自动发现被网络限制时可使用手动地址。兼容配对码用于旧版 Go 客户端。"), manual, code)))
+	expert := widget.NewAccordion(widget.NewAccordionItem(tr("Manual connection"), container.NewVBox(explain(tr("Use a manual address when network discovery is unavailable. You can also connect using a pairing code.")), manual, code)))
 	if len(addresses) == 0 {
 		expert.Open(0)
 	}
-	content := container.NewVBox(hint, space(16), copyInvite, space(8), explain("连接邀请包含设备授权，请只交给你信任的电脑。"), space(12), expert)
-	d := dialog.NewCustom("连接新设备", "完成", content, g.window)
+	content := container.NewVBox(hint, space(16), copyInvite, space(8), explain(tr("Share the invitation only with computers you trust. It grants access to this workspace.")), space(12), expert)
+	d := dialog.NewCustom(tr("Connect a new device"), tr("Done"), content, g.window)
 	d.Resize(fyne.NewSize(550, 390))
 	d.Show()
 }
@@ -232,17 +238,17 @@ func (g *gui) joinWorkspace() {
 	}
 	keys, clips := newToggle(template.Input), newToggle(template.Clipboard)
 	invite := widget.NewPasswordEntry()
-	invite.SetPlaceHolder("粘贴 SuperFlow 连接邀请")
-	paste := widget.NewButtonWithIcon("粘贴", theme.ContentPasteIcon(), func() { invite.SetText(strings.TrimSpace(g.window.Clipboard().Content())) })
-	status := explain("邀请会自动填写连接地址，无需输入对方的设备名称。")
-	nearby := widget.NewSelect([]string{"自动使用邀请中的设备"}, nil)
+	invite.SetPlaceHolder(tr("Paste a SuperFlow invitation"))
+	paste := widget.NewButtonWithIcon(tr("Paste"), theme.ContentPasteIcon(), func() { invite.SetText(strings.TrimSpace(g.window.Clipboard().Content())) })
+	status := explain(tr("The invitation fills in the address and device name for you."))
+	nearby := newSelect([]string{tr("Use the device in the invitation")}, nil)
 	nearby.SetSelectedIndex(0)
 	peers := map[string]discovery.Peer{}
 	name := widget.NewEntry()
 	name.SetText(defaultName())
 	server := widget.NewEntry()
-	server.SetPlaceHolder("兼容旧配对码时填写地址")
-	advanced := widget.NewAccordion(widget.NewAccordionItem("更多选项", container.NewVBox(widget.NewLabel("本机名称"), name, widget.NewLabel("手动地址"), server)))
+	server.SetPlaceHolder(tr("Address for pairing code"))
+	advanced := widget.NewAccordion(widget.NewAccordionItem(tr("More options"), container.NewVBox(widget.NewLabel(tr("This computer's name")), name, widget.NewLabel(tr("Manual address")), server)))
 	last := ""
 	update := func() {
 		found := g.service.Nearby()
@@ -255,7 +261,7 @@ func (g *gui) joinWorkspace() {
 		}
 		last = key
 		selected := nearby.Selected
-		options := []string{"自动使用邀请中的设备"}
+		options := []string{tr("Use the device in the invitation")}
 		peers = map[string]discovery.Peer{}
 		seen := map[string]bool{}
 		for _, p := range found {
@@ -265,7 +271,7 @@ func (g *gui) joinWorkspace() {
 			seen[p.ID] = true
 			label := p.Name + " · " + platformName(p.OS) + " · " + p.ID[len(p.ID)-4:]
 			if !p.Ready {
-				label += "（未开始共享）"
+				label += tr(" (sharing is paused)")
 			}
 			options = append(options, label)
 			peers[label] = p
@@ -284,14 +290,14 @@ func (g *gui) joinWorkspace() {
 	g.discoveryRefresh = update
 	invite.OnChanged = func(value string) {
 		if i, err := config.ParseInvitation(value); err == nil {
-			status.SetText("将连接到 " + i.Name + "，配对后自动恢复连接。")
+			status.SetText(fmt.Sprintf(tr("Connecting to %s. SuperFlow will reconnect automatically after pairing."), i.Name))
 		} else {
-			status.SetText("邀请会自动填写连接地址，无需输入对方的设备名称。")
+			status.SetText(tr("The invitation fills in the address and device name for you."))
 		}
 	}
-	body := container.NewVBox(widget.NewLabel("连接邀请"), container.NewBorder(nil, nil, nil, paste, invite), status, space(12), widget.NewLabel("附近的电脑"), nearby, explain("找不到设备也可以直接粘贴邀请。两台电脑需处于可互通的网络。"), container.NewBorder(nil, nil, widget.NewLabel("键盘与鼠标"), keys, nil), container.NewBorder(nil, nil, widget.NewLabel("文本剪贴板"), clips, nil), explain("声音和麦克风保持关闭，连接后可按需开启。"), space(8), advanced)
+	body := container.NewVBox(widget.NewLabel(tr("Connection invitation")), container.NewBorder(nil, nil, nil, paste, invite), status, space(12), widget.NewLabel(tr("Nearby computers")), nearby, explain(tr("You can paste an invitation even if the computer is not listed. Both computers must be able to reach each other.")), container.NewBorder(nil, nil, widget.NewLabel(tr("Keyboard and mouse")), keys, nil), container.NewBorder(nil, nil, widget.NewLabel(tr("Text clipboard")), clips, nil), explain(tr("You can enable system audio and microphones after connecting.")), space(8), advanced)
 	var d *dialog.CustomDialog
-	connect := widget.NewButton("配对并连接", func() {
+	connect := widget.NewButton(tr("Pair and connect"), func() {
 		c := template.Clone()
 		c.Name = strings.TrimSpace(name.Text)
 		c.Screens[0].Name = c.Name
@@ -326,7 +332,7 @@ func (g *gui) joinWorkspace() {
 			hubName = peer.Name
 		}
 		if !config.ValidAddress(address) {
-			g.showError(errors.New("请粘贴完整连接邀请，或选择附近的电脑并填写兼容配对码"))
+			g.showError(errors.New(tr("Paste a full invitation or select a nearby computer and enter a pairing code")))
 			return
 		}
 		if err = c.Pair(code, address); err != nil {
@@ -334,7 +340,7 @@ func (g *gui) joinWorkspace() {
 			return
 		}
 		if peer, ok := peers[nearby.Selected]; ok && peer.Pin != c.Pin {
-			g.showError(errors.New("所选设备与邀请不匹配，请选择“自动使用邀请中的设备”"))
+			g.showError(errors.New(tr("The selected device does not match the invitation. Choose “Use the device in the invitation”.")))
 			return
 		}
 		if hubName == c.Name {
@@ -351,7 +357,7 @@ func (g *gui) joinWorkspace() {
 		g.finishSetup(c, false)
 	})
 	connect.Importance = widget.HighImportance
-	d = dialog.NewCustomWithoutButtons("连接另一台电脑", container.NewVBox(body, space(14), container.NewHBox(layout.NewSpacer(), widget.NewButton("返回", func() { d.Hide(); g.setup() }), connect)), g.window)
+	d = dialog.NewCustomWithoutButtons(tr("Connect to another computer"), container.NewVBox(body, space(14), container.NewHBox(layout.NewSpacer(), widget.NewButton(tr("Back"), func() { d.Hide(); g.setup() }), connect)), g.window)
 	d.SetOnClosed(func() { g.discoveryRefresh = nil })
 	d.Resize(fyne.NewSize(590, 620))
 	d.Show()
@@ -367,11 +373,11 @@ func (g *gui) checkInput(c *config.Config) bool {
 		return true
 	}
 	if err := input.Check(input.Options{Capture: c.Mode == "hub", Devices: c.InputDevices, Width: c.ScreenWidth, Height: c.ScreenHeight}); err != nil {
-		content := container.NewVBox(explain(err.Error()), explain("完成授权后可继续，也可以暂时关闭键鼠共享，先连接设备。"))
+		content := container.NewVBox(explain(err.Error()), explain(tr("Grant permission to continue, or turn off input sharing for now and connect your devices.")))
 		if runtime.GOOS == "darwin" {
-			content.Add(container.NewHBox(widget.NewButton("辅助功能", func() { g.openURL("x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") }), widget.NewButton("输入监控", func() { g.openURL("x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent") })))
+			content.Add(container.NewHBox(widget.NewButton(tr("Accessibility"), func() { g.openURL("x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") }), widget.NewButton(tr("Input Monitoring"), func() { g.openURL("x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent") })))
 		}
-		d := dialog.NewCustom("还需要一步设置", "知道了", content, g.window)
+		d := dialog.NewCustom(tr("One more step"), tr("Got it"), content, g.window)
 		d.Resize(fyne.NewSize(540, 240))
 		d.Show()
 		return false

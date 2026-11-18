@@ -6,8 +6,6 @@ __pycache__/
 .venv/
 .test-results/
 *.wav
-/soundflow
-/soundflow.exe
 /superflow
 /superflow.exe
 /coverage.out
