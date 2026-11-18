@@ -9,6 +9,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/xavier-chen/superflow/releases/tag/v0.7.0-alpha">Download</a> ·
   <a href="#quick-start">Quick start</a> ·
   <a href="#platforms">Platforms</a> ·
   <a href="docs/GO.md#网络设计">Network design</a> ·
@@ -38,6 +39,8 @@ A single QUIC connection carries separate reliable streams for input and clipboa
 ## Quick start
 
 The desktop app supports **English and Simplified Chinese**. It follows your system language by default. Change it in the welcome screen or under **Settings → Language**. The interface updates immediately while your devices stay connected.
+
+Download the desktop package for your operating system from [GitHub Releases](https://github.com/xavier-chen/superflow/releases/tag/v0.7.0-alpha).
 
 Build the desktop app with **Go 1.26+** and your platform's graphics toolchain. The same command packages the native desktop build on each OS.
 
@@ -85,6 +88,8 @@ SuperFlow 是一款用 Go 开发的跨平台桌面工具。在同一张桌子上
 ### 快速开始
 
 界面支持**英文和简体中文**，默认跟随系统。首次启动或在 **设置 → 界面语言** 手动切换，当前共享连接会继续运行。
+
+可在 [GitHub Releases](https://github.com/xavier-chen/superflow/releases/tag/v0.7.0-alpha) 下载对应系统和架构的桌面包。
 
 安装 **Go 1.26+** 和对应系统的图形开发工具链，在项目根目录运行：
 
